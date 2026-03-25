@@ -1,0 +1,65 @@
+<div id="standard-site-sidebar" class="meta">
+    <h2 class="heading">Standard.site</h2>
+
+    {% if not isConnected %}
+        <div class="pane">
+            <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('settings/plugins/standard-site') }}">Configure</a></p>
+        </div>
+    {% elseif isPublished %}
+        <div class="pane">
+            <div class="status-badge">
+                <span class="status green"></span> Published
+            </div>
+            {% if atUri %}
+                <div style="margin-top: 8px;">
+                    <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
+                </div>
+            {% endif %}
+            <div style="margin-top: 12px;" class="btngroup">
+                <button type="button" class="btn" id="standard-site-update">Update</button>
+                <button type="button" class="btn" id="standard-site-unpublish">Unpublish</button>
+            </div>
+        </div>
+    {% else %}
+        <div class="pane">
+            <div class="status-badge">
+                <span class="status"></span> Not published
+            </div>
+            <div style="margin-top: 12px;">
+                <button type="button" class="btn submit" id="standard-site-publish">Publish</button>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% if isConnected %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var entryId = {{ entry.id }};
+    var siteId = {{ entry.siteId }};
+
+    function handleAction(action) {
+        Craft.sendActionRequest('POST', 'standard-site/entry/' + action, {
+            data: { entryId: entryId, siteId: siteId }
+        }).then(function(response) {
+            if (response.data.success) {
+                Craft.cp.displayNotice(action === 'unpublish' ? 'Unpublished from AT Protocol' : 'Published to AT Protocol');
+                window.location.reload();
+            } else {
+                Craft.cp.displayError(response.data.error || 'Failed');
+            }
+        }).catch(function(error) {
+            Craft.cp.displayError('Request failed');
+        });
+    }
+
+    var publishBtn = document.getElementById('standard-site-publish');
+    var updateBtn = document.getElementById('standard-site-update');
+    var unpublishBtn = document.getElementById('standard-site-unpublish');
+
+    if (publishBtn) publishBtn.addEventListener('click', function() { handleAction('publish'); });
+    if (updateBtn) updateBtn.addEventListener('click', function() { handleAction('publish'); });
+    if (unpublishBtn) unpublishBtn.addEventListener('click', function() { handleAction('unpublish'); });
+});
+</script>
+{% endif %}

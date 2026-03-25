@@ -1,0 +1,48 @@
+{
+  "name": "studioespresso/craft-standard-site",
+  "description": "Standard.site integration for Craft CMS",
+  "type": "craft-plugin",
+  "license": "mit",
+  "support": {
+    "email": "info@studioespresso.co",
+    "issues": "https://github.com/studioespresso/craft-standard-site/issues?state=open",
+    "source": "https://github.com/studioespresso/craft-standard-site",
+    "docs": "https://github.com/studioespresso/craft-standard-site",
+    "rss": "https://github.com/studioespresso/craft-standard-site/releases.atom"
+  },
+  "require": {
+    "php": ">=8.4",
+    "craftcms/cms": "^5.9.0"
+  },
+  "require-dev": {
+    "craftcms/ecs": "dev-main",
+    "craftcms/phpstan": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "studioespresso\\standardsite\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "standard-site",
+    "name": "Standard Site",
+    "developer": "Studio Espresso",
+    "documentationUrl": "https://github.com/studioespresso/craft-standard-site",
+    "class": "studioespresso\\standardsite\\StandardSite"
+  },
+  "scripts": {
+    "check-cs": "ecs check --ansi",
+    "fix-cs": "ecs check --ansi --fix",
+    "phpstan": "phpstan --memory-limit=1G"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}

@@ -1,0 +1,267 @@
+{# @var plugin \studioespresso\standardsite\StandardSite #}
+{# @var settings \studioespresso\standardsite\models\Settings #}
+
+{% import '_includes/forms.twig' as forms %}
+
+{% set isConnected = settings.did is not empty and settings.accessToken is not empty %}
+
+{# ── Connection (Global) ── #}
+<h2>{{ 'AT Protocol Connection'|t('standard-site') }}</h2>
+
+{% if isConnected %}
+    <div class="pane" style="margin-bottom: 14px;">
+        <p><strong>{{ 'Connected'|t('standard-site') }}</strong></p>
+        <p>{{ 'Handle'|t('standard-site') }}: <code>{{ settings.handle }}</code></p>
+        <p>{{ 'DID'|t('standard-site') }}: <code>{{ settings.did }}</code></p>
+        <p>{{ 'PDS'|t('standard-site') }}: <code>{{ settings.pdsUrl }}</code></p>
+    </div>
+
+    <a href="#" class="btn" data-standard-site-action="disconnect">{{ 'Disconnect'|t('standard-site') }}</a>
+
+{% else %}
+    {{ forms.textField({
+        label: 'AT Protocol Handle'|t('standard-site'),
+        instructions: 'Enter your handle and save settings first, then click Connect.'|t('standard-site'),
+        id: 'handle',
+        name: 'handle',
+        value: settings.handle,
+        placeholder: 'yourname.bsky.social',
+        required: true,
+    }) }}
+
+    {% if settings.handle %}
+        <a href="#" class="btn submit" data-standard-site-action="connect">{{ 'Connect with AT Protocol'|t('standard-site') }}</a>
+    {% else %}
+        <p class="light">{{ 'Save your handle first using the Save button above, then connect.'|t('standard-site') }}</p>
+    {% endif %}
+{% endif %}
+
+<hr>
+
+{# ── Site Selector ── #}
+{% set allSites = craft.app.sites.allSites %}
+{% set selectedSiteUid = craft.app.request.getQueryParam('siteUid') ?? allSites|first.uid %}
+{% set selectedSite = null %}
+{% for s in allSites %}
+    {% if s.uid == selectedSiteUid %}
+        {% set selectedSite = s %}
+    {% endif %}
+{% endfor %}
+{% if not selectedSite %}
+    {% set selectedSite = allSites|first %}
+    {% set selectedSiteUid = selectedSite.uid %}
+{% endif %}
+
+{% set currentSiteSettings = settings.getSiteSettings(selectedSiteUid) %}
+
+{% if allSites|length > 1 %}
+    <div class="btngroup" style="margin-bottom: 24px;">
+        {% for s in allSites %}
+            <a href="{{ cpUrl('settings/plugins/standard-site', { siteUid: s.uid }) }}"
+               class="btn{% if s.uid == selectedSiteUid %} active submit{% endif %}">
+                {{ s.name }}
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{# ── Publication (Per-site) ── #}
+<h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
+
+{% if isConnected %}
+    {{ forms.textField({
+        label: 'Publication Name'|t('standard-site'),
+        instructions: 'The name of your publication as it appears on AT Protocol.'|t('standard-site'),
+        id: 'publicationName',
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationName]',
+        value: currentSiteSettings.publicationName,
+    }) }}
+
+    {{ forms.textareaField({
+        label: 'Publication Description'|t('standard-site'),
+        instructions: 'A short description of your publication.'|t('standard-site'),
+        id: 'publicationDescription',
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationDescription]',
+        value: currentSiteSettings.publicationDescription,
+        rows: 3,
+    }) }}
+
+    {% if currentSiteSettings.publicationAtUri %}
+        <div class="pane" style="margin-bottom: 14px;">
+            <p><strong>{{ 'Publication Record'|t('standard-site') }}</strong></p>
+            <p>{{ 'AT-URI'|t('standard-site') }}: <code>{{ currentSiteSettings.publicationAtUri }}</code></p>
+            <p><a href="https://pdsls.dev/at/{{ currentSiteSettings.publicationAtUri|replace({'at://': ''}) }}" target="_blank" rel="noopener">{{ 'View on pdsls.dev'|t('standard-site') }} &rarr;</a></p>
+        </div>
+    {% endif %}
+
+    <a href="#" class="btn submit" data-standard-site-action="save-publication" data-site-uid="{{ selectedSiteUid }}">
+        {{ currentSiteSettings.publicationAtUri ? 'Update Publication Record'|t('standard-site') : 'Create Publication Record'|t('standard-site') }}
+    </a>
+{% else %}
+    <p class="light">{{ 'Connect to AT Protocol first to manage your publication.'|t('standard-site') }}</p>
+{% endif %}
+
+<hr>
+
+{# ── Sync Settings (Per-site) ── #}
+<h2>{{ 'Sync Settings'|t('standard-site') }} — {{ selectedSite.name }}</h2>
+
+{{ forms.lightswitchField({
+    label: 'Publish on Save'|t('standard-site'),
+    instructions: 'Automatically publish entries to AT Protocol when saved.'|t('standard-site'),
+    id: 'publishOnSave-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][publishOnSave]',
+    on: currentSiteSettings.publishOnSave,
+}) }}
+
+{{ forms.lightswitchField({
+    label: 'Cross-post to Bluesky'|t('standard-site'),
+    instructions: 'Also create a Bluesky post when publishing entries. (Coming soon)'|t('standard-site'),
+    id: 'crossPostToBluesky-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][crossPostToBluesky]',
+    on: currentSiteSettings.crossPostToBluesky,
+    disabled: true,
+}) }}
+
+{% set sectionOptions = [] %}
+{% for section in craft.app.entries.allSections %}
+    {% if section.type != 'single' %}
+        {% set sectionOptions = sectionOptions|merge([{
+            label: section.name,
+            value: section.uid,
+        }]) %}
+    {% endif %}
+{% endfor %}
+
+{{ forms.checkboxGroupField({
+    label: 'Enabled Sections'|t('standard-site'),
+    instructions: 'Select which sections should be synced to AT Protocol.'|t('standard-site'),
+    id: 'enabledSections-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][enabledSections]',
+    options: sectionOptions,
+    values: currentSiteSettings.enabledSections,
+}) }}
+
+{% if isConnected and currentSiteSettings.publicationAtUri and currentSiteSettings.enabledSections|length %}
+<hr>
+
+{# ── Backfill ── #}
+<h2>{{ 'Backfill'|t('standard-site') }} — {{ selectedSite.name }}</h2>
+<p class="light" style="margin-bottom: 14px;">{{ 'Sync all existing published entries in enabled sections to AT Protocol. Entries already synced will be skipped.'|t('standard-site') }}</p>
+<a href="#" class="btn" data-standard-site-action="backfill" data-site-uid="{{ selectedSiteUid }}">{{ 'Start Backfill'|t('standard-site') }}</a>
+{% endif %}
+
+{# Store other per-site settings that aren't in the form (publication record refs) #}
+{% if currentSiteSettings.publicationAtUri %}
+    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationAtUri]" value="{{ currentSiteSettings.publicationAtUri }}">
+    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationCid]" value="{{ currentSiteSettings.publicationCid }}">
+    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationRkey]" value="{{ currentSiteSettings.publicationRkey }}">
+{% endif %}
+
+{# Preserve settings for OTHER sites that aren't currently selected #}
+{% for siteUid, siteData in settings.siteSettings %}
+    {% if siteUid != selectedSiteUid %}
+        {% for key, value in siteData %}
+            {% if value is iterable %}
+                {% for v in value %}
+                    <input type="hidden" name="siteSettings[{{ siteUid }}][{{ key }}][]" value="{{ v }}">
+                {% endfor %}
+            {% else %}
+                <input type="hidden" name="siteSettings[{{ siteUid }}][{{ key }}]" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+
+<script>
+document.addEventListener('click', async function(e) {
+    var btn = e.target.closest('[data-standard-site-action]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    var action = btn.getAttribute('data-standard-site-action');
+    console.log('[standard-site] Action:', action);
+
+    if (action === 'connect') {
+        btn.classList.add('loading');
+        btn.style.pointerEvents = 'none';
+
+        try {
+            var response = await Craft.sendActionRequest('POST', 'standard-site/oauth/connect');
+            console.log('[standard-site] Response:', response.data);
+            if (response.data.success && response.data.authUrl) {
+                window.location.href = response.data.authUrl;
+            } else {
+                Craft.cp.displayError(response.data.error || 'Connection failed.');
+                btn.classList.remove('loading');
+                btn.style.pointerEvents = '';
+            }
+        } catch (err) {
+            console.error('[standard-site] Error:', err);
+            Craft.cp.displayError(err.response?.data?.error || err.response?.data?.message || 'Connection failed.');
+            btn.classList.remove('loading');
+            btn.style.pointerEvents = '';
+        }
+    }
+
+    if (action === 'disconnect') {
+        if (!confirm('Are you sure you want to disconnect?')) return;
+        btn.classList.add('loading');
+        try {
+            await Craft.sendActionRequest('POST', 'standard-site/oauth/disconnect');
+            window.location.reload();
+        } catch (err) {
+            Craft.cp.displayError('Failed to disconnect.');
+            btn.classList.remove('loading');
+        }
+    }
+
+    if (action === 'save-publication') {
+        var siteUid = btn.getAttribute('data-site-uid');
+        var nameEl = document.getElementById('settings-publicationName');
+        var descEl = document.getElementById('settings-publicationDescription');
+        var name = nameEl ? nameEl.value : '';
+        var desc = descEl ? descEl.value : '';
+        btn.classList.add('loading');
+        btn.style.pointerEvents = 'none';
+        try {
+            var response = await Craft.sendActionRequest('POST', 'standard-site/settings/save-publication', {
+                data: { publicationName: name, publicationDescription: desc, siteUid: siteUid }
+            });
+            if (response.data.success) {
+                Craft.cp.displayNotice('Publication record saved.');
+                window.location.reload();
+            } else {
+                Craft.cp.displayError(response.data.error || 'Failed to save publication.');
+            }
+        } catch (err) {
+            Craft.cp.displayError(err.response?.data?.error || 'Failed to save publication.');
+        }
+        btn.classList.remove('loading');
+        btn.style.pointerEvents = '';
+    }
+    if (action === 'backfill') {
+        var siteUid = btn.getAttribute('data-site-uid');
+        if (!confirm('This will sync all existing entries to AT Protocol. Continue?')) return;
+        btn.classList.add('loading');
+        btn.style.pointerEvents = 'none';
+        try {
+            var response = await Craft.sendActionRequest('POST', 'standard-site/settings/backfill', {
+                data: { siteUid: siteUid }
+            });
+            if (response.data.success) {
+                Craft.cp.displayNotice('Backfill job added to queue. Check the queue manager for progress.');
+            } else {
+                Craft.cp.displayError(response.data.error || 'Failed to start backfill.');
+            }
+        } catch (err) {
+            Craft.cp.displayError(err.response?.data?.error || 'Failed to start backfill.');
+        }
+        btn.classList.remove('loading');
+        btn.style.pointerEvents = '';
+    }
+});
+console.log('[standard-site] click handler registered');
+</script>
