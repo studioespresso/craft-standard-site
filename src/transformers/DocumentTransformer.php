@@ -59,8 +59,10 @@ class DocumentTransformer
             $record['tags'] = $tags;
         }
 
-        // Cover image: first image from an Assets field
-        $coverBlob = $this->uploadCoverImage($entry);
+        // Cover image: from configured field or auto-detect
+        $section = $entry->getSection();
+        $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
+        $coverBlob = $this->uploadCoverImage($entry, $imageFieldUid);
         if ($coverBlob) {
             $record['coverImage'] = $coverBlob;
         }
@@ -154,20 +156,36 @@ class DocumentTransformer
     }
 
     /**
-     * Find the first image from an Assets field and upload it as a blob.
+     * Find the cover image and upload it as a blob.
+     * If a field UID is configured, use that specific field. Otherwise auto-detect the first Assets field.
      */
-    private function uploadCoverImage(Entry $entry): ?array
+    private function uploadCoverImage(Entry $entry, ?string $imageFieldUid = null): ?array
     {
         $fieldLayout = $entry->getFieldLayout();
         if (!$fieldLayout) {
             return null;
         }
 
-        foreach ($fieldLayout->getCustomFields() as $field) {
-            if (!$field instanceof AssetsField) {
-                continue;
-            }
+        $fields = [];
 
+        if ($imageFieldUid) {
+            // Use the configured field
+            foreach ($fieldLayout->getCustomFields() as $field) {
+                if ($field->uid === $imageFieldUid && $field instanceof AssetsField) {
+                    $fields = [$field];
+                    break;
+                }
+            }
+        } else {
+            // Auto-detect: all Assets fields
+            foreach ($fieldLayout->getCustomFields() as $field) {
+                if ($field instanceof AssetsField) {
+                    $fields[] = $field;
+                }
+            }
+        }
+
+        foreach ($fields as $field) {
             $assets = $entry->getFieldValue($field->handle);
             if (!$assets) {
                 continue;

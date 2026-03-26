@@ -121,6 +121,40 @@
     values: currentSiteSettings.enabledSections,
 }) }}
 
+{# ── Cover Image Field per Section (rendered for all, toggled by JS) ── #}
+{% for section in craft.app.entries.allSections %}
+    {% if section.type != 'single' %}
+        {% set imageFieldOptions = [{ label: 'Auto-detect (first image field)'|t('standard-site'), value: '' }] %}
+        {% set entryTypes = section.entryTypes %}
+        {% set seenFields = [] %}
+        {% for entryType in entryTypes %}
+            {% set fieldLayout = entryType.fieldLayout %}
+            {% if fieldLayout %}
+                {% for field in fieldLayout.customFields %}
+                    {% if field is instance of('craft\\fields\\Assets') and field.uid not in seenFields %}
+                        {% set imageFieldOptions = imageFieldOptions|merge([{
+                            label: field.name,
+                            value: field.uid,
+                        }]) %}
+                        {% set seenFields = seenFields|merge([field.uid]) %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+
+        <div class="standard-site-image-field" data-section-uid="{{ section.uid }}" style="margin-top: 14px;{% if section.uid not in currentSiteSettings.enabledSections %} display: none;{% endif %}">
+            {{ forms.selectField({
+                label: ('Cover Image Field for "%s"'|t('standard-site'))|format(section.name),
+                instructions: 'Select which Assets field to use as cover image when publishing entries from this section.'|t('standard-site'),
+                id: 'sectionImageField-' ~ section.uid,
+                name: 'siteSettings[' ~ selectedSiteUid ~ '][sectionImageFields][' ~ section.uid ~ ']',
+                options: imageFieldOptions,
+                value: currentSiteSettings.sectionImageFields[section.uid] ?? '',
+            }) }}
+        </div>
+    {% endif %}
+{% endfor %}
+
 
 {# Store other per-site settings that aren't in the form (publication record refs) #}
 {% if currentSiteSettings.publicationAtUri %}
@@ -133,7 +167,11 @@
 {% for siteUid, siteData in settings.siteSettings %}
     {% if siteUid != selectedSiteUid %}
         {% for key, value in siteData %}
-            {% if value is iterable %}
+            {% if key == 'sectionImageFields' and value is iterable %}
+                {% for sectionUid, fieldUid in value %}
+                    <input type="hidden" name="siteSettings[{{ siteUid }}][sectionImageFields][{{ sectionUid }}]" value="{{ fieldUid }}">
+                {% endfor %}
+            {% elseif value is iterable %}
                 {% for v in value %}
                     <input type="hidden" name="siteSettings[{{ siteUid }}][{{ key }}][]" value="{{ v }}">
                 {% endfor %}
@@ -180,5 +218,17 @@ document.addEventListener('click', async function(e) {
         btn.style.pointerEvents = '';
     }
 });
+// Toggle cover image field selectors when section checkboxes change
+var checkboxGroup = document.getElementById('settings-enabledSections-{{ selectedSiteUid }}');
+if (checkboxGroup) {
+    checkboxGroup.addEventListener('change', function(e) {
+        if (e.target.type !== 'checkbox') return;
+        var sectionUid = e.target.value;
+        var wrapper = document.querySelector('.standard-site-image-field[data-section-uid="' + sectionUid + '"]');
+        if (wrapper) {
+            wrapper.style.display = e.target.checked ? '' : 'none';
+        }
+    });
+}
 console.log('[standard-site] click handler registered');
 </script>

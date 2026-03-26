@@ -25,6 +25,9 @@ class SiteSettings extends Model
     public bool $crossPostToBluesky = false;
     public array $enabledSections = [];
 
+    // Per-section cover image field mapping: sectionUid => fieldUid
+    public array $sectionImageFields = [];
+
     public function defineRules(): array
     {
         return [
