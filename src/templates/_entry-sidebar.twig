@@ -1,36 +1,26 @@
-<div id="standard-site-sidebar" class="meta">
-    <h2 class="heading">Standard.site</h2>
+<fieldset id="standard-site-sidebar">
+    <legend class="h6">Standard.site</legend>
 
     {% if not isConnected %}
-        <div class="pane">
-            <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('standard-site') }}">Connect</a></p>
-        </div>
+        <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('standard-site') }}">Connect</a></p>
     {% elseif isPublished %}
-        <div class="pane">
-            <div class="status-badge">
-                <span class="status green"></span> Published
-            </div>
-            {% if atUri %}
-                <div style="margin-top: 8px;">
-                    <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
-                </div>
-            {% endif %}
-            <div style="margin-top: 12px;" class="btngroup">
-                <button type="button" class="btn" id="standard-site-update">Update</button>
-                <button type="button" class="btn" id="standard-site-unpublish">Unpublish</button>
-            </div>
+        <div class="flex" style="align-items: center; gap: 6px; margin-bottom: 8px;">
+            <span class="status green"></span> <span>Published</span>
+        </div>
+        {% if atUri %}
+            <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
+        {% endif %}
+        <div class="btngroup" style="margin-top: 10px;">
+            <button type="button" class="btn" id="standard-site-update">Update</button>
+            <button type="button" class="btn" id="standard-site-unpublish">Unpublish</button>
         </div>
     {% else %}
-        <div class="pane">
-            <div class="status-badge">
-                <span class="status"></span> Not published
-            </div>
-            <div style="margin-top: 12px;">
-                <button type="button" class="btn submit" id="standard-site-publish">Publish</button>
-            </div>
+        <div class="flex" style="align-items: center; gap: 6px; margin-bottom: 8px;">
+            <span class="status"></span> <span>Not published</span>
         </div>
+        <button type="button" class="btn submit" id="standard-site-publish">Publish</button>
     {% endif %}
-</div>
+</fieldset>
 
 {% if isConnected %}
 <script>
