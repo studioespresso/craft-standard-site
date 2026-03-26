@@ -25,8 +25,12 @@ class SiteSettings extends Model
     public bool $crossPostToBluesky = false;
     public array $enabledSections = [];
 
-    // Per-section cover image field mapping: sectionUid => fieldUid
+    // Content format type for the document content field
+    public string $contentType = 'org.wordpress.html';
+
+    // Per-section field mappings: sectionUid => fieldUid
     public array $sectionImageFields = [];
+    public array $sectionContentFields = [];
 
     public function defineRules(): array
     {

@@ -32,16 +32,19 @@ class DocumentTransformer
             $record['path'] = '/' . ltrim(str_replace($baseUrl, '', $entryUrl), '/');
         }
 
+        $section = $entry->getSection();
+
         // Description: try SEO field first, then truncated text content
         $description = $this->extractSeoDescription($entry);
         if ($description) {
             $record['description'] = $description;
         }
 
-        // Text content: auto-detect CKEditor and PlainText fields
-        $textContent = $this->extractTextContent($entry);
+        // Text content: from configured field or auto-detect
+        $contentFieldUid = $siteSettings->sectionContentFields[$section->uid] ?? null;
+        $textContent = $this->extractTextContent($entry, $contentFieldUid);
         if ($textContent) {
-            $record['text'] = $textContent;
+            $record['textContent'] = $textContent;
 
             // Fallback description from content if no SEO description
             if (!isset($record['description'])) {
@@ -53,6 +56,15 @@ class DocumentTransformer
             }
         }
 
+        // Rich content: HTML from CKEditor fields
+        $htmlContent = $this->extractHtmlContent($entry, $contentFieldUid);
+        if ($htmlContent) {
+            $record['content'] = [
+                '$type' => $siteSettings->contentType,
+                'html' => $htmlContent,
+            ];
+        }
+
         // Tags: from category fields
         $tags = $this->extractTags($entry);
         if (!empty($tags)) {
@@ -60,7 +72,6 @@ class DocumentTransformer
         }
 
         // Cover image: from configured field or auto-detect
-        $section = $entry->getSection();
         $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
         $coverBlob = $this->uploadCoverImage($entry, $imageFieldUid);
         if ($coverBlob) {
@@ -99,7 +110,7 @@ class DocumentTransformer
         return null;
     }
 
-    private function extractTextContent(Entry $entry): ?string
+    private function extractTextContent(Entry $entry, ?string $contentFieldUid = null): ?string
     {
         $fieldLayout = $entry->getFieldLayout();
         if (!$fieldLayout) {
@@ -109,6 +120,11 @@ class DocumentTransformer
         $parts = [];
 
         foreach ($fieldLayout->getCustomFields() as $field) {
+            // If a specific field is configured, only use that one
+            if ($contentFieldUid && $field->uid !== $contentFieldUid) {
+                continue;
+            }
+
             if ($field instanceof CKEditorField) {
                 $value = $entry->getFieldValue($field->handle);
                 if ($value) {
@@ -130,6 +146,42 @@ class DocumentTransformer
         }
 
         return !empty($parts) ? implode("\n\n", $parts) : null;
+    }
+
+    private function extractHtmlContent(Entry $entry, ?string $contentFieldUid = null): ?string
+    {
+        $fieldLayout = $entry->getFieldLayout();
+        if (!$fieldLayout) {
+            return null;
+        }
+
+        $parts = [];
+
+        foreach ($fieldLayout->getCustomFields() as $field) {
+            if ($contentFieldUid && $field->uid !== $contentFieldUid) {
+                continue;
+            }
+
+            if ($field instanceof CKEditorField) {
+                $value = $entry->getFieldValue($field->handle);
+                if ($value) {
+                    $html = trim((string)$value);
+                    if ($html) {
+                        $parts[] = $html;
+                    }
+                }
+            } elseif ($field instanceof PlainText) {
+                $value = $entry->getFieldValue($field->handle);
+                if ($value && is_string($value)) {
+                    $trimmed = trim($value);
+                    if ($trimmed) {
+                        $parts[] = '<p>' . htmlspecialchars($trimmed) . '</p>';
+                    }
+                }
+            }
+        }
+
+        return !empty($parts) ? implode("\n", $parts) : null;
     }
 
     private function extractTags(Entry $entry): array

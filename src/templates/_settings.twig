@@ -121,28 +121,46 @@
     values: currentSiteSettings.enabledSections,
 }) }}
 
-{# ── Cover Image Field per Section (rendered for all, toggled by JS) ── #}
+{# ── Per-section field mappings (rendered for all, toggled by JS) ── #}
 {% for section in craft.app.entries.allSections %}
     {% if section.type != 'single' %}
         {% set imageFieldOptions = [{ label: 'Auto-detect (first image field)'|t('standard-site'), value: '' }] %}
+        {% set contentFieldOptions = [{ label: 'Auto-detect (all text fields)'|t('standard-site'), value: '' }] %}
         {% set entryTypes = section.entryTypes %}
-        {% set seenFields = [] %}
+        {% set seenImageFields = [] %}
+        {% set seenContentFields = [] %}
         {% for entryType in entryTypes %}
             {% set fieldLayout = entryType.fieldLayout %}
             {% if fieldLayout %}
                 {% for field in fieldLayout.customFields %}
-                    {% if field is instance of('craft\\fields\\Assets') and field.uid not in seenFields %}
+                    {% if field is instance of('craft\\fields\\Assets') and field.uid not in seenImageFields %}
                         {% set imageFieldOptions = imageFieldOptions|merge([{
                             label: field.name,
                             value: field.uid,
                         }]) %}
-                        {% set seenFields = seenFields|merge([field.uid]) %}
+                        {% set seenImageFields = seenImageFields|merge([field.uid]) %}
+                    {% endif %}
+                    {% if (field is instance of('craft\\ckeditor\\Field') or field is instance of('craft\\fields\\PlainText')) and field.uid not in seenContentFields %}
+                        {% set contentFieldOptions = contentFieldOptions|merge([{
+                            label: field.name,
+                            value: field.uid,
+                        }]) %}
+                        {% set seenContentFields = seenContentFields|merge([field.uid]) %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
         {% endfor %}
 
-        <div class="standard-site-image-field" data-section-uid="{{ section.uid }}" style="margin-top: 14px;{% if section.uid not in currentSiteSettings.enabledSections %} display: none;{% endif %}">
+        <div class="standard-site-section-fields" data-section-uid="{{ section.uid }}" style="margin-top: 14px;{% if section.uid not in currentSiteSettings.enabledSections %} display: none;{% endif %}">
+            {{ forms.selectField({
+                label: ('Content Field for "%s"'|t('standard-site'))|format(section.name),
+                instructions: 'Select which field to use as text content when publishing entries from this section.'|t('standard-site'),
+                id: 'sectionContentField-' ~ section.uid,
+                name: 'siteSettings[' ~ selectedSiteUid ~ '][sectionContentFields][' ~ section.uid ~ ']',
+                options: contentFieldOptions,
+                value: currentSiteSettings.sectionContentFields[section.uid] ?? '',
+            }) }}
+
             {{ forms.selectField({
                 label: ('Cover Image Field for "%s"'|t('standard-site'))|format(section.name),
                 instructions: 'Select which Assets field to use as cover image when publishing entries from this section.'|t('standard-site'),
@@ -167,9 +185,9 @@
 {% for siteUid, siteData in settings.siteSettings %}
     {% if siteUid != selectedSiteUid %}
         {% for key, value in siteData %}
-            {% if key == 'sectionImageFields' and value is iterable %}
+            {% if (key == 'sectionImageFields' or key == 'sectionContentFields') and value is iterable %}
                 {% for sectionUid, fieldUid in value %}
-                    <input type="hidden" name="siteSettings[{{ siteUid }}][sectionImageFields][{{ sectionUid }}]" value="{{ fieldUid }}">
+                    <input type="hidden" name="siteSettings[{{ siteUid }}][{{ key }}][{{ sectionUid }}]" value="{{ fieldUid }}">
                 {% endfor %}
             {% elseif value is iterable %}
                 {% for v in value %}
@@ -224,7 +242,7 @@ if (checkboxGroup) {
     checkboxGroup.addEventListener('change', function(e) {
         if (e.target.type !== 'checkbox') return;
         var sectionUid = e.target.value;
-        var wrapper = document.querySelector('.standard-site-image-field[data-section-uid="' + sectionUid + '"]');
+        var wrapper = document.querySelector('.standard-site-section-fields[data-section-uid="' + sectionUid + '"]');
         if (wrapper) {
             wrapper.style.display = e.target.checked ? '' : 'none';
         }
