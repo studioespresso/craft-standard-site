@@ -5,6 +5,7 @@ namespace studioespresso\standardsite\jobs;
 use Craft;
 use craft\elements\Entry;
 use craft\queue\BaseJob;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 
 class BackfillJob extends BaseJob
@@ -22,7 +23,7 @@ class BackfillJob extends BaseJob
             return;
         }
 
-        if (!$siteSettings->publicationAtUri) {
+        if (!PublicationRecord::getAtUri($this->siteUid)) {
             Craft::warning('[standard-site] Backfill skipped: no publication record', __METHOD__);
             return;
         }

@@ -12,6 +12,7 @@ use craft\events\RegisterUrlRulesEvent;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use studioespresso\standardsite\jobs\PublishEntryJob;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\models\Settings;
 use studioespresso\standardsite\services\ApiService;
 use studioespresso\standardsite\services\ConnectionService;
@@ -115,7 +116,7 @@ class StandardSite extends Plugin
                 }
 
                 // Must have a publication record for this site
-                if (!$siteSettings->publicationAtUri) {
+                if (!PublicationRecord::getAtUri($site->uid)) {
                     return;
                 }
 

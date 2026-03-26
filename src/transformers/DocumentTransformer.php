@@ -8,6 +8,7 @@ use craft\elements\Asset;
 use craft\elements\Entry;
 use craft\fields\Assets as AssetsField;
 use craft\fields\PlainText;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 
 class DocumentTransformer
@@ -22,7 +23,7 @@ class DocumentTransformer
 
         $record = [
             '$type' => 'site.standard.document',
-            'site' => $siteSettings->publicationAtUri,
+            'site' => PublicationRecord::getAtUri($site->uid),
             'title' => $entry->title,
             'publishedAt' => $entry->postDate->format(\DateTime::ATOM),
         ];

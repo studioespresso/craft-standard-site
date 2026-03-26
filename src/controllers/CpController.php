@@ -6,6 +6,7 @@ use Craft;
 use craft\helpers\Cp;
 use craft\models\Site;
 use craft\web\Controller;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 use yii\web\Response;
 
@@ -53,6 +54,7 @@ class CpController extends Controller
                 'connection' => $connection,
                 'selectedSite' => $this->site,
                 'currentSiteSettings' => $currentSiteSettings,
+                'publicationRecord' => PublicationRecord::findBySiteUid($this->site->uid),
             ]);
     }
 

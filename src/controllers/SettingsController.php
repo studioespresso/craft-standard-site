@@ -5,7 +5,7 @@ namespace studioespresso\standardsite\controllers;
 use Craft;
 use craft\web\Controller;
 use studioespresso\standardsite\helpers\Tid;
-use studioespresso\standardsite\models\SiteSettings;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 use studioespresso\standardsite\transformers\PublicationTransformer;
 use yii\web\Response;
@@ -29,7 +29,7 @@ class SettingsController extends Controller
         $publicationName = $request->getBodyParam('publicationName', '');
         $publicationDescription = $request->getBodyParam('publicationDescription', '');
 
-        // Get or create site settings
+        // Get site settings (from project config) for name/description
         $siteSettings = $settings->getSiteSettings($siteUid);
         $siteSettings->publicationName = $publicationName;
         $siteSettings->publicationDescription = $publicationDescription;
@@ -47,16 +47,22 @@ class SettingsController extends Controller
             return $this->asJson(['success' => false, 'error' => 'Site not found']);
         }
 
+        // Get existing publication record from DB
+        $pubRecord = PublicationRecord::find()->where(['siteUid' => $siteUid])->one();
+
         $transformer = new PublicationTransformer();
         $record = $transformer->transformForSite($site, $siteSettings);
 
         try {
-            if ($siteSettings->publicationRkey) {
+            if ($pubRecord) {
                 $result = $plugin->api->putRecord(
                     $transformer->getCollection(),
-                    $siteSettings->publicationRkey,
+                    $pubRecord->rkey,
                     $record,
                 );
+                $pubRecord->atUri = $result['uri'] ?? $pubRecord->atUri;
+                $pubRecord->cid = $result['cid'] ?? null;
+                $pubRecord->save();
             } else {
                 $rkey = Tid::generate();
                 $result = $plugin->api->createRecord(
@@ -64,15 +70,13 @@ class SettingsController extends Controller
                     $record,
                     $rkey,
                 );
-                $siteSettings->publicationRkey = $rkey;
+                $pubRecord = new PublicationRecord();
+                $pubRecord->siteUid = $siteUid;
+                $pubRecord->rkey = $rkey;
+                $pubRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid()}/{$transformer->getCollection()}/{$rkey}";
+                $pubRecord->cid = $result['cid'] ?? null;
+                $pubRecord->save();
             }
-
-            $siteSettings->publicationAtUri = $result['uri'] ?? null;
-            $siteSettings->publicationCid = $result['cid'] ?? null;
-
-            // Save back to plugin settings
-            $settings->setSiteSettings($siteUid, $siteSettings);
-            Craft::$app->getPlugins()->savePluginSettings($plugin, $settings->toArray());
 
             return $this->asJson(['success' => true]);
         } catch (\Throwable $e) {

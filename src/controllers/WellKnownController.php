@@ -4,7 +4,7 @@ namespace studioespresso\standardsite\controllers;
 
 use Craft;
 use craft\web\Controller;
-use studioespresso\standardsite\StandardSite;
+use studioespresso\standardsite\records\PublicationRecord;
 use yii\web\Response;
 
 /**
@@ -16,11 +16,8 @@ class WellKnownController extends Controller
 
     public function actionPublication(): Response
     {
-        $settings = StandardSite::getInstance()->getSettings();
         $currentSite = Craft::$app->getSites()->getCurrentSite();
-        $siteSettings = $settings->getSiteSettings($currentSite->uid);
-
-        $atUri = $siteSettings->publicationAtUri ?? '';
+        $atUri = PublicationRecord::getAtUri($currentSite->uid) ?? '';
 
         $response = Craft::$app->getResponse();
         $response->format = Response::FORMAT_RAW;

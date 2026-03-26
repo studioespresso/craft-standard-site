@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\Entry;
 use studioespresso\standardsite\helpers\Tid;
 use studioespresso\standardsite\records\EntryRecord;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 use studioespresso\standardsite\transformers\DocumentTransformer;
 use yii\base\Component;
@@ -20,13 +21,12 @@ class PublisherService extends Component
         $siteSettings = $settings->getSiteSettings($site->uid);
 
         if (!$plugin->connection->isConnected()) {
-            Craft::warning('[standard-site] Cannot publish: not connected to PDS', __METHOD__);
-            return;
+            throw new \RuntimeException('Not connected to AT Protocol. Connect via the Standard.site CP page first.');
         }
 
-        if (!$siteSettings->publicationAtUri) {
-            Craft::warning('[standard-site] Cannot publish: no publication record for site ' . $site->handle, __METHOD__);
-            return;
+        $publicationAtUri = PublicationRecord::getAtUri($site->uid);
+        if (!$publicationAtUri) {
+            throw new \RuntimeException('No publication record for site "' . $site->handle . '". Create one from the Standard.site CP page first.');
         }
 
         $transformer = new DocumentTransformer();

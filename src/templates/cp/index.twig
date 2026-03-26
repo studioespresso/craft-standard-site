@@ -10,6 +10,23 @@
 
     <a href="#" class="btn" id="standard-site-disconnect">{{ 'Disconnect'|t('standard-site') }}</a>
 
+    <hr>
+
+    <h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
+
+    {% if publicationRecord %}
+        <div class="pane" style="margin-bottom: 14px;">
+            <p><strong>{{ 'Publication Record'|t('standard-site') }}</strong></p>
+            <p>{{ 'AT-URI'|t('standard-site') }}: <code>{{ publicationRecord.atUri }}</code></p>
+            <p><a href="https://pdsls.dev/at/{{ publicationRecord.atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener">{{ 'View on pdsls.dev'|t('standard-site') }} &rarr;</a></p>
+        </div>
+
+        <a href="#" class="btn" id="standard-site-save-publication" data-site-uid="{{ selectedSite.uid }}">{{ 'Update Publication Record'|t('standard-site') }}</a>
+    {% else %}
+        <p class="light" style="margin-bottom: 14px;">{{ 'No publication record for this site yet. Create one to start publishing entries.'|t('standard-site') }}</p>
+        <a href="#" class="btn submit" id="standard-site-save-publication" data-site-uid="{{ selectedSite.uid }}">{{ 'Create Publication Record'|t('standard-site') }}</a>
+    {% endif %}
+
 {% else %}
     {% if currentSiteSettings.handle %}
         <div class="pane" style="margin-bottom: 14px;">
@@ -29,6 +46,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     var connectBtn = document.getElementById('standard-site-connect');
     var disconnectBtn = document.getElementById('standard-site-disconnect');
+    var pubBtn = document.getElementById('standard-site-save-publication');
 
     if (connectBtn) {
         connectBtn.addEventListener('click', async function(e) {
@@ -70,6 +88,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    if (pubBtn) {
+        pubBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            var siteUid = pubBtn.getAttribute('data-site-uid');
+            pubBtn.classList.add('loading');
+            pubBtn.style.pointerEvents = 'none';
+
+            try {
+                var response = await Craft.sendActionRequest('POST', 'standard-site/settings/save-publication', {
+                    data: {
+                        siteUid: siteUid,
+                        publicationName: '{{ currentSiteSettings.publicationName|e('js') }}',
+                        publicationDescription: '{{ currentSiteSettings.publicationDescription|e('js') }}'
+                    }
+                });
+                if (response.data.success) {
+                    Craft.cp.displayNotice('Publication record saved.');
+                    window.location.reload();
+                } else {
+                    Craft.cp.displayError(response.data.error || 'Failed to save publication.');
+                }
+            } catch (err) {
+                Craft.cp.displayError(err.response?.data?.error || 'Failed to save publication.');
+            }
+            pubBtn.classList.remove('loading');
+            pubBtn.style.pointerEvents = '';
+        });
+    }
 });
 </script>
-

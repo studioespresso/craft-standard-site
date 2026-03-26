@@ -6,6 +6,7 @@ use Craft;
 use craft\console\Controller;
 use craft\elements\Entry;
 use craft\helpers\Console;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 use yii\console\ExitCode;
 
@@ -34,8 +35,8 @@ class BackfillController extends Controller
         $siteSettings = $settings->getSiteSettings($site->uid);
 
         // Check publication record
-        if (!$siteSettings->publicationAtUri) {
-            $this->stderr("No publication record for site \"{$siteHandle}\". Create one in plugin settings first.\n", Console::FG_RED);
+        if (!PublicationRecord::getAtUri($site->uid)) {
+            $this->stderr("No publication record for site \"{$siteHandle}\". Create one from the Standard.site CP page first.\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
 

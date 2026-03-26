@@ -44,41 +44,25 @@
 
 <hr>
 
-{# ── Publication (Per-site) ── #}
+{# ── Publication Name & Description (synced via project config) ── #}
 <h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
 
-{% if isConnected %}
-    {{ forms.textField({
-        label: 'Publication Name'|t('standard-site'),
-        instructions: 'The name of your publication as it appears on AT Protocol.'|t('standard-site'),
-        id: 'publicationName',
-        name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationName]',
-        value: currentSiteSettings.publicationName,
-    }) }}
+{{ forms.textField({
+    label: 'Publication Name'|t('standard-site'),
+    instructions: 'The name of your publication as it appears on AT Protocol.'|t('standard-site'),
+    id: 'publicationName',
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationName]',
+    value: currentSiteSettings.publicationName,
+}) }}
 
-    {{ forms.textareaField({
-        label: 'Publication Description'|t('standard-site'),
-        instructions: 'A short description of your publication.'|t('standard-site'),
-        id: 'publicationDescription',
-        name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationDescription]',
-        value: currentSiteSettings.publicationDescription,
-        rows: 3,
-    }) }}
-
-    {% if currentSiteSettings.publicationAtUri %}
-        <div class="pane" style="margin-bottom: 14px;">
-            <p><strong>{{ 'Publication Record'|t('standard-site') }}</strong></p>
-            <p>{{ 'AT-URI'|t('standard-site') }}: <code>{{ currentSiteSettings.publicationAtUri }}</code></p>
-            <p><a href="https://pdsls.dev/at/{{ currentSiteSettings.publicationAtUri|replace({'at://': ''}) }}" target="_blank" rel="noopener">{{ 'View on pdsls.dev'|t('standard-site') }} &rarr;</a></p>
-        </div>
-    {% endif %}
-
-    <a href="#" class="btn submit" data-standard-site-action="save-publication" data-site-uid="{{ selectedSiteUid }}">
-        {{ currentSiteSettings.publicationAtUri ? 'Update Publication Record'|t('standard-site') : 'Create Publication Record'|t('standard-site') }}
-    </a>
-{% else %}
-    <p class="light">{{ 'Connect to AT Protocol first to manage your publication.'|t('standard-site') }}</p>
-{% endif %}
+{{ forms.textareaField({
+    label: 'Publication Description'|t('standard-site'),
+    instructions: 'A short description of your publication.'|t('standard-site'),
+    id: 'publicationDescription',
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationDescription]',
+    value: currentSiteSettings.publicationDescription,
+    rows: 3,
+}) }}
 
 <hr>
 
@@ -174,13 +158,6 @@
 {% endfor %}
 
 
-{# Store other per-site settings that aren't in the form (publication record refs) #}
-{% if currentSiteSettings.publicationAtUri %}
-    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationAtUri]" value="{{ currentSiteSettings.publicationAtUri }}">
-    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationCid]" value="{{ currentSiteSettings.publicationCid }}">
-    <input type="hidden" name="siteSettings[{{ selectedSiteUid }}][publicationRkey]" value="{{ currentSiteSettings.publicationRkey }}">
-{% endif %}
-
 {# Preserve settings for OTHER sites that aren't currently selected #}
 {% for siteUid, siteData in settings.siteSettings %}
     {% if siteUid != selectedSiteUid %}
@@ -201,41 +178,6 @@
 {% endfor %}
 
 <script>
-document.addEventListener('click', async function(e) {
-    var btn = e.target.closest('[data-standard-site-action]');
-    if (!btn) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    var action = btn.getAttribute('data-standard-site-action');
-    console.log('[standard-site] Action:', action);
-
-    if (action === 'save-publication') {
-        var siteUid = btn.getAttribute('data-site-uid');
-        var nameEl = document.getElementById('settings-publicationName');
-        var descEl = document.getElementById('settings-publicationDescription');
-        var name = nameEl ? nameEl.value : '';
-        var desc = descEl ? descEl.value : '';
-        btn.classList.add('loading');
-        btn.style.pointerEvents = 'none';
-        try {
-            var response = await Craft.sendActionRequest('POST', 'standard-site/settings/save-publication', {
-                data: { publicationName: name, publicationDescription: desc, siteUid: siteUid }
-            });
-            if (response.data.success) {
-                Craft.cp.displayNotice('Publication record saved.');
-                window.location.reload();
-            } else {
-                Craft.cp.displayError(response.data.error || 'Failed to save publication.');
-            }
-        } catch (err) {
-            Craft.cp.displayError(err.response?.data?.error || 'Failed to save publication.');
-        }
-        btn.classList.remove('loading');
-        btn.style.pointerEvents = '';
-    }
-});
 // Toggle cover image field selectors when section checkboxes change
 var checkboxGroup = document.getElementById('settings-enabledSections-{{ selectedSiteUid }}');
 if (checkboxGroup) {
