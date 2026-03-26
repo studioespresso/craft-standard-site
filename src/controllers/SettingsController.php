@@ -5,7 +5,6 @@ namespace studioespresso\standardsite\controllers;
 use Craft;
 use craft\web\Controller;
 use studioespresso\standardsite\helpers\Tid;
-use studioespresso\standardsite\jobs\BackfillJob;
 use studioespresso\standardsite\models\SiteSettings;
 use studioespresso\standardsite\StandardSite;
 use studioespresso\standardsite\transformers\PublicationTransformer;
@@ -81,37 +80,4 @@ class SettingsController extends Controller
         }
     }
 
-    /**
-     * Trigger a backfill job for a specific site.
-     */
-    public function actionBackfill(): Response
-    {
-        $this->requireCpRequest();
-        $this->requirePostRequest();
-        $this->requireAcceptsJson();
-
-        $siteUid = Craft::$app->getRequest()->getRequiredBodyParam('siteUid');
-
-        $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $siteSettings = $settings->getSiteSettings($siteUid);
-
-        if (!$plugin->oauth->isConnected()) {
-            return $this->asJson(['success' => false, 'error' => 'Not connected to AT Protocol']);
-        }
-
-        if (!$siteSettings->publicationAtUri) {
-            return $this->asJson(['success' => false, 'error' => 'Create a publication record first']);
-        }
-
-        if (empty($siteSettings->enabledSections)) {
-            return $this->asJson(['success' => false, 'error' => 'No sections enabled for sync']);
-        }
-
-        Craft::$app->getQueue()->push(new BackfillJob([
-            'siteUid' => $siteUid,
-        ]));
-
-        return $this->asJson(['success' => true]);
-    }
 }

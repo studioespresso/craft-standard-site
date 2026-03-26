@@ -121,14 +121,6 @@
     values: currentSiteSettings.enabledSections,
 }) }}
 
-{% if isConnected and currentSiteSettings.publicationAtUri and currentSiteSettings.enabledSections|length %}
-<hr>
-
-{# ── Backfill ── #}
-<h2>{{ 'Backfill'|t('standard-site') }} — {{ selectedSite.name }}</h2>
-<p class="light" style="margin-bottom: 14px;">{{ 'Sync all existing published entries in enabled sections to AT Protocol. Entries already synced will be skipped.'|t('standard-site') }}</p>
-<a href="#" class="btn" data-standard-site-action="backfill" data-site-uid="{{ selectedSiteUid }}">{{ 'Start Backfill'|t('standard-site') }}</a>
-{% endif %}
 
 {# Store other per-site settings that aren't in the form (publication record refs) #}
 {% if currentSiteSettings.publicationAtUri %}
@@ -183,26 +175,6 @@ document.addEventListener('click', async function(e) {
             }
         } catch (err) {
             Craft.cp.displayError(err.response?.data?.error || 'Failed to save publication.');
-        }
-        btn.classList.remove('loading');
-        btn.style.pointerEvents = '';
-    }
-    if (action === 'backfill') {
-        var siteUid = btn.getAttribute('data-site-uid');
-        if (!confirm('This will sync all existing entries to AT Protocol. Continue?')) return;
-        btn.classList.add('loading');
-        btn.style.pointerEvents = 'none';
-        try {
-            var response = await Craft.sendActionRequest('POST', 'standard-site/settings/backfill', {
-                data: { siteUid: siteUid }
-            });
-            if (response.data.success) {
-                Craft.cp.displayNotice('Backfill job added to queue. Check the queue manager for progress.');
-            } else {
-                Craft.cp.displayError(response.data.error || 'Failed to start backfill.');
-            }
-        } catch (err) {
-            Craft.cp.displayError(err.response?.data?.error || 'Failed to start backfill.');
         }
         btn.classList.remove('loading');
         btn.style.pointerEvents = '';
