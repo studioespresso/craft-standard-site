@@ -17,14 +17,14 @@ class OauthController extends Controller
      */
     public function actionClientMetadata(): Response
     {
-
         $oauth = StandardSite::getInstance()->oauth;
+        $currentSite = Craft::$app->getSites()->getCurrentSite();
 
         $metadata = [
-            'client_id' => $oauth->getClientId(),
+            'client_id' => $oauth->getClientId($currentSite->handle),
             'client_name' => 'Standard Site for Craft CMS',
-            'client_uri' => rtrim(Craft::$app->getSites()->getPrimarySite()->getBaseUrl(), '/'),
-            'redirect_uris' => [$oauth->getRedirectUri()],
+            'client_uri' => rtrim($currentSite->getBaseUrl(), '/'),
+            'redirect_uris' => [$oauth->getRedirectUri($currentSite->handle)],
             'grant_types' => ['authorization_code', 'refresh_token'],
             'response_types' => ['code'],
             'token_endpoint_auth_method' => 'none',

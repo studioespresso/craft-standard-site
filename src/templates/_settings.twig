@@ -7,25 +7,25 @@
 
 {# ── Site Selector ── #}
 {% set allSites = craft.app.sites.allSites %}
-{% set selectedSiteUid = craft.app.request.getQueryParam('siteUid') ?? allSites|first.uid %}
+{% set selectedSiteHandle = craft.app.request.getQueryParam('site') ?? allSites|first.handle %}
 {% set selectedSite = null %}
 {% for s in allSites %}
-    {% if s.uid == selectedSiteUid %}
+    {% if s.handle == selectedSiteHandle %}
         {% set selectedSite = s %}
     {% endif %}
 {% endfor %}
 {% if not selectedSite %}
     {% set selectedSite = allSites|first %}
-    {% set selectedSiteUid = selectedSite.uid %}
 {% endif %}
+{% set selectedSiteUid = selectedSite.uid %}
 
 {% set currentSiteSettings = settings.getSiteSettings(selectedSiteUid) %}
 
 {% if allSites|length > 1 %}
     <div class="btngroup" style="margin-bottom: 24px;">
         {% for s in allSites %}
-            <a href="{{ cpUrl('settings/plugins/standard-site', { siteUid: s.uid }) }}"
-               class="btn{% if s.uid == selectedSiteUid %} active submit{% endif %}">
+            <a href="{{ cpUrl('settings/plugins/standard-site', { site: s.handle }) }}"
+               class="btn{% if s.handle == selectedSiteHandle %} active submit{% endif %}">
                 {{ s.name }}
             </a>
         {% endfor %}

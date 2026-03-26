@@ -32,7 +32,7 @@ class OAuthService extends Component
     /**
      * Initiate OAuth flow. Returns the authorization URL to redirect the user to.
      */
-    public function authorize(string $handle): string
+    public function authorize(string $handle, ?string $siteHandle = null): string
     {
         $plugin = StandardSite::getInstance();
 
@@ -58,12 +58,13 @@ class OAuthService extends Component
             'authServer' => $resolved['authServer'],
             'codeVerifier' => $codeVerifier,
             'dpopKey' => $dpopKey,
+            'siteHandle' => $siteHandle,
         ];
         $cache->set(self::CACHE_PREFIX . $state, $cacheData, self::CACHE_TTL);
 
         $authServer = $resolved['authServer'];
-        $clientId = $this->getClientId();
-        $redirectUri = $this->getRedirectUri();
+        $clientId = $this->getClientId($siteHandle);
+        $redirectUri = $this->getRedirectUri($siteHandle);
 
         // Try PAR (Pushed Authorization Request) first
         if (!empty($authServer['pushed_authorization_request_endpoint'])) {
@@ -106,11 +107,13 @@ class OAuthService extends Component
         // Create DPoP proof for token endpoint
         $proof = $plugin->dpop->createProof($dpopKey, 'POST', $tokenEndpoint);
 
+        $siteHandle = $cacheData['siteHandle'] ?? null;
+
         $tokenData = [
             'grant_type' => 'authorization_code',
             'code' => $code,
-            'redirect_uri' => $this->getRedirectUri(),
-            'client_id' => $this->getClientId(),
+            'redirect_uri' => $this->getRedirectUri($siteHandle),
+            'client_id' => $this->getClientId($siteHandle),
             'code_verifier' => $cacheData['codeVerifier'],
         ];
 
@@ -182,17 +185,31 @@ class OAuthService extends Component
     /**
      * OAuth client_id — a publicly accessible URL that serves client metadata JSON.
      */
-    public function getClientId(): string
+    public function getClientId(?string $siteHandle = null): string
     {
-        return rtrim(Craft::$app->getSites()->getPrimarySite()->getBaseUrl(), '/') . '/standard-site/oauth/client-metadata';
+        return rtrim($this->getSiteBaseUrl($siteHandle), '/') . '/standard-site/oauth/client-metadata';
     }
 
     /**
-     * OAuth redirect URI — the CP callback URL.
+     * OAuth redirect URI — the callback URL.
      */
-    public function getRedirectUri(): string
+    public function getRedirectUri(?string $siteHandle = null): string
     {
-        return rtrim(Craft::$app->getSites()->getPrimarySite()->getBaseUrl(), '/') . '/standard-site/oauth/callback';
+        return rtrim($this->getSiteBaseUrl($siteHandle), '/') . '/standard-site/oauth/callback';
+    }
+
+    /**
+     * Get the base URL for a specific site, or primary site as fallback.
+     */
+    private function getSiteBaseUrl(?string $siteHandle = null): string
+    {
+        if ($siteHandle) {
+            $site = Craft::$app->getSites()->getSiteByHandle($siteHandle);
+            if ($site) {
+                return $site->getBaseUrl();
+            }
+        }
+        return Craft::$app->getSites()->getPrimarySite()->getBaseUrl();
     }
 
     private function authorizeViaPar(array $authServer, array $dpopKey, string $state, string $codeChallenge, string $clientId, string $redirectUri): string
