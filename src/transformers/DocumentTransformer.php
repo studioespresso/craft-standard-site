@@ -12,6 +12,8 @@ use studioespresso\standardsite\StandardSite;
 
 class DocumentTransformer
 {
+    public bool $dryRun = false;
+
     public function transform(Entry $entry): array
     {
         $settings = StandardSite::getInstance()->getSettings();
@@ -247,6 +249,16 @@ class DocumentTransformer
             $asset = $assets->kind('image')->one();
             if (!$asset) {
                 continue;
+            }
+
+            if ($this->dryRun) {
+                return [
+                    '_dryRun' => true,
+                    'asset' => $asset->title,
+                    'filename' => $asset->filename,
+                    'mimeType' => $asset->getMimeType() ?: 'image/jpeg',
+                    'size' => $asset->size,
+                ];
             }
 
             try {
