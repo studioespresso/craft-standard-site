@@ -11,45 +11,13 @@
             <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
         {% endif %}
         <div class="btngroup" style="margin-top: 10px;">
-            <button type="button" class="btn" id="standard-site-update">Update</button>
-            <button type="button" class="btn" id="standard-site-unpublish">Unpublish</button>
+            <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Update</a>
+            <a href="{{ actionUrl('standard-site/entry/unpublish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Unpublish</a>
         </div>
     {% else %}
         <div class="flex" style="align-items: center; gap: 6px; margin-bottom: 8px;">
             <span class="status"></span> <span>Not published</span>
         </div>
-        <button type="button" class="btn submit" id="standard-site-publish">Publish</button>
+        <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn submit">Publish</a>
     {% endif %}
 </fieldset>
-
-{% if isConnected %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var entryId = {{ entry.id }};
-    var siteId = {{ entry.siteId }};
-
-    function handleAction(action) {
-        Craft.sendActionRequest('POST', 'standard-site/entry/' + action, {
-            data: { entryId: entryId, siteId: siteId }
-        }).then(function(response) {
-            if (response.data.success) {
-                Craft.cp.displayNotice(action === 'unpublish' ? 'Unpublished from AT Protocol' : 'Published to AT Protocol');
-                window.location.reload();
-            } else {
-                Craft.cp.displayError(response.data.error || 'Failed');
-            }
-        }).catch(function(error) {
-            Craft.cp.displayError('Request failed');
-        });
-    }
-
-    var publishBtn = document.getElementById('standard-site-publish');
-    var updateBtn = document.getElementById('standard-site-update');
-    var unpublishBtn = document.getElementById('standard-site-unpublish');
-
-    if (publishBtn) publishBtn.addEventListener('click', function() { handleAction('publish'); });
-    if (updateBtn) updateBtn.addEventListener('click', function() { handleAction('publish'); });
-    if (unpublishBtn) unpublishBtn.addEventListener('click', function() { handleAction('unpublish'); });
-});
-</script>
-{% endif %}

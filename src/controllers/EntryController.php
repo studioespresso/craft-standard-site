@@ -4,6 +4,7 @@ namespace studioespresso\standardsite\controllers;
 
 use Craft;
 use craft\elements\Entry;
+use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use studioespresso\standardsite\StandardSite;
 use yii\web\Response;
@@ -12,11 +13,10 @@ class EntryController extends Controller
 {
     public function actionPublish(): Response
     {
-        $this->requirePostRequest();
         $this->requireCpRequest();
 
-        $entryId = Craft::$app->getRequest()->getRequiredBodyParam('entryId');
-        $siteId = Craft::$app->getRequest()->getRequiredBodyParam('siteId');
+        $entryId = Craft::$app->getRequest()->getRequiredParam('entryId');
+        $siteId = Craft::$app->getRequest()->getRequiredParam('siteId');
 
         $entry = Entry::find()
             ->id($entryId)
@@ -25,24 +25,26 @@ class EntryController extends Controller
             ->one();
 
         if (!$entry) {
-            return $this->asJson(['success' => false, 'error' => 'Entry not found']);
+            Craft::$app->getSession()->setError('Entry not found');
+            return $this->redirect(Craft::$app->getRequest()->getReferrer());
         }
 
         try {
             StandardSite::getInstance()->publisher->publishEntry($entry);
-            return $this->asJson(['success' => true]);
+            Craft::$app->getSession()->setNotice('Published to AT Protocol');
         } catch (\Throwable $e) {
-            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+            Craft::$app->getSession()->setError("Publish failed: {$e->getMessage()}");
         }
+
+        return $this->redirect($entry->getCpEditUrl());
     }
 
     public function actionUnpublish(): Response
     {
-        $this->requirePostRequest();
         $this->requireCpRequest();
 
-        $entryId = Craft::$app->getRequest()->getRequiredBodyParam('entryId');
-        $siteId = Craft::$app->getRequest()->getRequiredBodyParam('siteId');
+        $entryId = Craft::$app->getRequest()->getRequiredParam('entryId');
+        $siteId = Craft::$app->getRequest()->getRequiredParam('siteId');
 
         $entry = Entry::find()
             ->id($entryId)
@@ -51,14 +53,17 @@ class EntryController extends Controller
             ->one();
 
         if (!$entry) {
-            return $this->asJson(['success' => false, 'error' => 'Entry not found']);
+            Craft::$app->getSession()->setError('Entry not found');
+            return $this->redirect(Craft::$app->getRequest()->getReferrer());
         }
 
         try {
             StandardSite::getInstance()->publisher->unpublishEntry($entry);
-            return $this->asJson(['success' => true]);
+            Craft::$app->getSession()->setNotice('Unpublished from AT Protocol');
         } catch (\Throwable $e) {
-            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+            Craft::$app->getSession()->setError("Unpublish failed: {$e->getMessage()}");
         }
+
+        return $this->redirect($entry->getCpEditUrl());
     }
 }
