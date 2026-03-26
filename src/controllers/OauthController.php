@@ -37,26 +37,6 @@ class OauthController extends Controller
     }
 
     /**
-     * Initiate OAuth connection. Returns JSON with the authorization URL.
-     */
-    public function actionConnect(): Response
-    {
-        $handle = StandardSite::getInstance()->getSettings()->handle;
-
-        if (!$handle) {
-            return $this->asJson(['success' => false, 'error' => 'Save your handle in settings first.']);
-        }
-
-        try {
-            $authUrl = StandardSite::getInstance()->oauth->authorize($handle);
-            return $this->asJson(['success' => true, 'authUrl' => $authUrl]);
-        } catch (\Throwable $e) {
-            Craft::error("standard-site connect error: {$e->getMessage()}", __METHOD__);
-            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
-        }
-    }
-
-    /**
      * OAuth callback from PDS. Exchange code for tokens.
      */
     public function actionCallback(): Response
@@ -67,14 +47,14 @@ class OauthController extends Controller
 
         if (!$code || !$state) {
             Craft::$app->getSession()->setError('Missing authorization code or state.');
-            return $this->redirect(\craft\helpers\UrlHelper::cpUrl('settings/plugins/standard-site'));
+            return $this->redirect(\craft\helpers\UrlHelper::cpUrl('standard-site'));
         }
 
         $error = $request->getQueryParam('error');
         if ($error) {
             $description = $request->getQueryParam('error_description', $error);
             Craft::$app->getSession()->setError("Authorization failed: {$description}");
-            return $this->redirect(\craft\helpers\UrlHelper::cpUrl('settings/plugins/standard-site'));
+            return $this->redirect(\craft\helpers\UrlHelper::cpUrl('standard-site'));
         }
 
         try {
@@ -87,16 +67,7 @@ class OauthController extends Controller
             Craft::$app->getSession()->setError("Callback failed: {$e->getMessage()}");
         }
 
-        return $this->redirect(\craft\helpers\UrlHelper::cpUrl('settings/plugins/standard-site'));
+        return $this->redirect(\craft\helpers\UrlHelper::cpUrl('standard-site'));
     }
 
-    /**
-     * Disconnect from AT Protocol.
-     */
-    public function actionDisconnect(): Response
-    {
-        StandardSite::getInstance()->oauth->disconnect();
-
-        return $this->asJson(['success' => true]);
-    }
 }

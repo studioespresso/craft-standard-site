@@ -3,7 +3,7 @@
 
     {% if not isConnected %}
         <div class="pane">
-            <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('settings/plugins/standard-site') }}">Configure</a></p>
+            <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('standard-site') }}">Connect</a></p>
         </div>
     {% elseif isPublished %}
         <div class="pane">

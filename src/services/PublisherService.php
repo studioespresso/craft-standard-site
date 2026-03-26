@@ -19,7 +19,7 @@ class PublisherService extends Component
         $site = Craft::$app->getSites()->getSiteById($entry->siteId);
         $siteSettings = $settings->getSiteSettings($site->uid);
 
-        if (!$plugin->oauth->isConnected()) {
+        if (!$plugin->connection->isConnected()) {
             Craft::warning('[standard-site] Cannot publish: not connected to PDS', __METHOD__);
             return;
         }
@@ -55,7 +55,7 @@ class PublisherService extends Component
             $dbRecord->siteId = $entry->siteId;
             $dbRecord->collection = $collection;
             $dbRecord->rkey = $rkey;
-            $dbRecord->atUri = $result['uri'] ?? "at://{$settings->did}/{$collection}/{$rkey}";
+            $dbRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid()}/{$collection}/{$rkey}";
             $dbRecord->cid = $result['cid'] ?? null;
             $dbRecord->save();
 
@@ -67,7 +67,7 @@ class PublisherService extends Component
     {
         $plugin = StandardSite::getInstance();
 
-        if (!$plugin->oauth->isConnected()) {
+        if (!$plugin->connection->isConnected()) {
             return;
         }
 

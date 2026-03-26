@@ -38,11 +38,10 @@ class ApiService extends Component
     public function request(string $method, string $endpoint, array $data = [], bool $isRetry = false): array
     {
         $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $encryption = $plugin->encryption;
+        $conn = $plugin->connection;
         $dpop = $plugin->dpop;
 
-        $pdsUrl = $settings->pdsUrl;
+        $pdsUrl = $conn->getPdsUrl();
         if (!$pdsUrl) {
             throw new \RuntimeException('Not connected to a PDS');
         }
@@ -53,11 +52,10 @@ class ApiService extends Component
         $accessToken = $plugin->oauth->getAccessToken();
 
         // Get DPoP key
-        $dpopKeyJson = $encryption->decrypt($settings->dpopKey);
-        if (!$dpopKeyJson) {
+        $dpopKey = $conn->getDpopKey();
+        if (!$dpopKey) {
             throw new \RuntimeException('No DPoP key available');
         }
-        $dpopKey = json_decode($dpopKeyJson, true, 512, JSON_THROW_ON_ERROR);
 
         // Create DPoP proof
         $proof = $dpop->createProof($dpopKey, $method, $url, $accessToken);
@@ -116,15 +114,13 @@ class ApiService extends Component
     public function uploadBlob(string $binaryData, string $mimeType): array
     {
         $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $encryption = $plugin->encryption;
+        $conn = $plugin->connection;
         $dpop = $plugin->dpop;
 
-        $url = "{$settings->pdsUrl}/xrpc/com.atproto.repo.uploadBlob";
+        $url = "{$conn->getPdsUrl()}/xrpc/com.atproto.repo.uploadBlob";
         $accessToken = $plugin->oauth->getAccessToken();
 
-        $dpopKeyJson = $encryption->decrypt($settings->dpopKey);
-        $dpopKey = json_decode($dpopKeyJson, true, 512, JSON_THROW_ON_ERROR);
+        $dpopKey = $conn->getDpopKey();
         $proof = $dpop->createProof($dpopKey, 'POST', $url, $accessToken);
 
         $response = $this->getClient()->post($url, [
@@ -144,10 +140,8 @@ class ApiService extends Component
 
     public function createRecord(string $collection, array $record, ?string $rkey = null): array
     {
-        $settings = StandardSite::getInstance()->getSettings();
-
         $data = [
-            'repo' => $settings->did,
+            'repo' => StandardSite::getInstance()->connection->getDid(),
             'collection' => $collection,
             'record' => $record,
         ];
@@ -161,10 +155,8 @@ class ApiService extends Component
 
     public function putRecord(string $collection, string $rkey, array $record): array
     {
-        $settings = StandardSite::getInstance()->getSettings();
-
         return $this->request('POST', 'com.atproto.repo.putRecord', [
-            'repo' => $settings->did,
+            'repo' => StandardSite::getInstance()->connection->getDid(),
             'collection' => $collection,
             'rkey' => $rkey,
             'record' => $record,
@@ -173,10 +165,8 @@ class ApiService extends Component
 
     public function deleteRecord(string $collection, string $rkey): array
     {
-        $settings = StandardSite::getInstance()->getSettings();
-
         return $this->request('POST', 'com.atproto.repo.deleteRecord', [
-            'repo' => $settings->did,
+            'repo' => StandardSite::getInstance()->connection->getDid(),
             'collection' => $collection,
             'rkey' => $rkey,
         ]);
@@ -184,10 +174,8 @@ class ApiService extends Component
 
     public function applyWrites(array $writes): array
     {
-        $settings = StandardSite::getInstance()->getSettings();
-
         return $this->request('POST', 'com.atproto.repo.applyWrites', [
-            'repo' => $settings->did,
+            'repo' => StandardSite::getInstance()->connection->getDid(),
             'writes' => $writes,
         ]);
     }

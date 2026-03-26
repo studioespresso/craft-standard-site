@@ -3,40 +3,7 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{% set isConnected = settings.did is not empty and settings.accessToken is not empty %}
-
-{# ── Connection (Global) ── #}
-<h2>{{ 'AT Protocol Connection'|t('standard-site') }}</h2>
-
-{% if isConnected %}
-    <div class="pane" style="margin-bottom: 14px;">
-        <p><strong>{{ 'Connected'|t('standard-site') }}</strong></p>
-        <p>{{ 'Handle'|t('standard-site') }}: <code>{{ settings.handle }}</code></p>
-        <p>{{ 'DID'|t('standard-site') }}: <code>{{ settings.did }}</code></p>
-        <p>{{ 'PDS'|t('standard-site') }}: <code>{{ settings.pdsUrl }}</code></p>
-    </div>
-
-    <a href="#" class="btn" data-standard-site-action="disconnect">{{ 'Disconnect'|t('standard-site') }}</a>
-
-{% else %}
-    {{ forms.textField({
-        label: 'AT Protocol Handle'|t('standard-site'),
-        instructions: 'Enter your handle and save settings first, then click Connect.'|t('standard-site'),
-        id: 'handle',
-        name: 'handle',
-        value: settings.handle,
-        placeholder: 'yourname.bsky.social',
-        required: true,
-    }) }}
-
-    {% if settings.handle %}
-        <a href="#" class="btn submit" data-standard-site-action="connect">{{ 'Connect with AT Protocol'|t('standard-site') }}</a>
-    {% else %}
-        <p class="light">{{ 'Save your handle first using the Save button above, then connect.'|t('standard-site') }}</p>
-    {% endif %}
-{% endif %}
-
-<hr>
+{% set isConnected = craft.app.plugins.getPlugin('standard-site').connection.isConnected() %}
 
 {# ── Site Selector ── #}
 {% set allSites = craft.app.sites.allSites %}
@@ -64,6 +31,18 @@
         {% endfor %}
     </div>
 {% endif %}
+
+{# ── Handle (Per-site) ── #}
+{{ forms.textField({
+    label: 'AT Protocol Handle'|t('standard-site'),
+    instructions: 'The AT Protocol handle for this site (e.g., yourname.bsky.social or your-domain.com). Connect via the'|t('standard-site') ~ ' <a href="' ~ cpUrl('standard-site') ~ '">Standard.site</a> ' ~ 'page.'|t('standard-site'),
+    id: 'handle-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][handle]',
+    value: currentSiteSettings.handle,
+    placeholder: 'yourname.bsky.social',
+}) }}
+
+<hr>
 
 {# ── Publication (Per-site) ── #}
 <h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
@@ -183,40 +162,6 @@ document.addEventListener('click', async function(e) {
 
     var action = btn.getAttribute('data-standard-site-action');
     console.log('[standard-site] Action:', action);
-
-    if (action === 'connect') {
-        btn.classList.add('loading');
-        btn.style.pointerEvents = 'none';
-
-        try {
-            var response = await Craft.sendActionRequest('POST', 'standard-site/oauth/connect');
-            console.log('[standard-site] Response:', response.data);
-            if (response.data.success && response.data.authUrl) {
-                window.location.href = response.data.authUrl;
-            } else {
-                Craft.cp.displayError(response.data.error || 'Connection failed.');
-                btn.classList.remove('loading');
-                btn.style.pointerEvents = '';
-            }
-        } catch (err) {
-            console.error('[standard-site] Error:', err);
-            Craft.cp.displayError(err.response?.data?.error || err.response?.data?.message || 'Connection failed.');
-            btn.classList.remove('loading');
-            btn.style.pointerEvents = '';
-        }
-    }
-
-    if (action === 'disconnect') {
-        if (!confirm('Are you sure you want to disconnect?')) return;
-        btn.classList.add('loading');
-        try {
-            await Craft.sendActionRequest('POST', 'standard-site/oauth/disconnect');
-            window.location.reload();
-        } catch (err) {
-            Craft.cp.displayError('Failed to disconnect.');
-            btn.classList.remove('loading');
-        }
-    }
 
     if (action === 'save-publication') {
         var siteUid = btn.getAttribute('data-site-uid');

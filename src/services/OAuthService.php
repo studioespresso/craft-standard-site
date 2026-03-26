@@ -126,19 +126,20 @@ class OAuthService extends Component
     public function refreshToken(): void
     {
         $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $encryption = $plugin->encryption;
+        $conn = $plugin->connection;
 
-        $refreshToken = $encryption->decrypt($settings->refreshToken);
+        $refreshToken = $conn->getRefreshToken();
         if (!$refreshToken) {
             throw new \RuntimeException('No refresh token available');
         }
 
-        $dpopKeyJson = $encryption->decrypt($settings->dpopKey);
-        $dpopKey = json_decode($dpopKeyJson, true, 512, JSON_THROW_ON_ERROR);
+        $dpopKey = $conn->getDpopKey();
+        if (!$dpopKey) {
+            throw new \RuntimeException('No DPoP key available');
+        }
 
         // Discover token endpoint
-        $authServer = $plugin->resolver->discoverAuthServer($settings->pdsUrl);
+        $authServer = $plugin->resolver->discoverAuthServer($conn->getPdsUrl());
         $tokenEndpoint = $authServer['token_endpoint'];
 
         $proof = $plugin->dpop->createProof($dpopKey, 'POST', $tokenEndpoint);
@@ -151,12 +152,8 @@ class OAuthService extends Component
 
         $tokens = $this->tokenRequest($tokenEndpoint, $tokenData, $proof, $dpopKey);
 
-        // Update stored tokens
-        $settings->accessToken = $encryption->encrypt($tokens['access_token']);
-        $settings->refreshToken = $encryption->encrypt($tokens['refresh_token']);
-        $settings->tokenExpiresAt = time() + ($tokens['expires_in'] ?? 3600);
-
-        Craft::$app->getPlugins()->savePluginSettings($plugin, $settings->toArray());
+        // Update stored tokens in DB
+        $conn->updateTokens($tokens);
     }
 
     /**
@@ -165,51 +162,21 @@ class OAuthService extends Component
     public function getAccessToken(): string
     {
         $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $encryption = $plugin->encryption;
+        $conn = $plugin->connection;
 
-        $accessToken = $encryption->decrypt($settings->accessToken);
+        $accessToken = $conn->getAccessToken();
         if (!$accessToken) {
-            throw new \RuntimeException('Not authenticated. Please connect via the plugin settings.');
+            throw new \RuntimeException('Not authenticated. Please connect via Standard.site in the CP.');
         }
 
         // Refresh if expiring within 5 minutes
-        if ($settings->tokenExpiresAt && $settings->tokenExpiresAt < time() + 300) {
+        $expiresAt = $conn->getTokenExpiresAt();
+        if ($expiresAt && $expiresAt < time() + 300) {
             $this->refreshToken();
-            // Re-read settings after refresh
-            $settings = $plugin->getSettings();
-            $accessToken = $encryption->decrypt($settings->accessToken);
+            $accessToken = $conn->getAccessToken();
         }
 
         return $accessToken;
-    }
-
-    /**
-     * Check if we have a valid connection.
-     */
-    public function isConnected(): bool
-    {
-        $settings = StandardSite::getInstance()->getSettings();
-        return !empty($settings->did) && !empty($settings->accessToken);
-    }
-
-    /**
-     * Clear all stored OAuth credentials.
-     */
-    public function disconnect(): void
-    {
-        $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-
-        $settings->did = '';
-        $settings->pdsUrl = '';
-        $settings->handle = '';
-        $settings->accessToken = null;
-        $settings->refreshToken = null;
-        $settings->dpopKey = null;
-        $settings->tokenExpiresAt = null;
-
-        Craft::$app->getPlugins()->savePluginSettings($plugin, $settings->toArray());
     }
 
     /**
@@ -325,18 +292,12 @@ class OAuthService extends Component
 
     private function storeConnection(array $cacheData, array $dpopKey, array $tokens): void
     {
-        $plugin = StandardSite::getInstance();
-        $settings = $plugin->getSettings();
-        $encryption = $plugin->encryption;
-
-        $settings->handle = $cacheData['handle'];
-        $settings->did = $cacheData['did'];
-        $settings->pdsUrl = $cacheData['pdsUrl'];
-        $settings->accessToken = $encryption->encrypt($tokens['access_token']);
-        $settings->refreshToken = $encryption->encrypt($tokens['refresh_token']);
-        $settings->dpopKey = $encryption->encrypt(json_encode($dpopKey, JSON_THROW_ON_ERROR));
-        $settings->tokenExpiresAt = time() + ($tokens['expires_in'] ?? 3600);
-
-        Craft::$app->getPlugins()->savePluginSettings($plugin, $settings->toArray());
+        StandardSite::getInstance()->connection->saveConnection(
+            $cacheData['handle'],
+            $cacheData['did'],
+            $cacheData['pdsUrl'],
+            $tokens,
+            $dpopKey,
+        );
     }
 }

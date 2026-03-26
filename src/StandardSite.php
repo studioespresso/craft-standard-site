@@ -14,6 +14,7 @@ use craft\web\UrlManager;
 use studioespresso\standardsite\jobs\PublishEntryJob;
 use studioespresso\standardsite\models\Settings;
 use studioespresso\standardsite\services\ApiService;
+use studioespresso\standardsite\services\ConnectionService;
 use studioespresso\standardsite\services\DPopService;
 use studioespresso\standardsite\services\EncryptionService;
 use studioespresso\standardsite\services\OAuthService;
@@ -33,14 +34,16 @@ use yii\base\Event;
  * @property-read OAuthService $oauth
  * @property-read ApiService $api
  * @property-read PublisherService $publisher
+ * @property-read ConnectionService $connection
  * @author Studio Espresso <info@studioespresso.co>
  * @copyright Studio Espresso
  * @license MIT
  */
 class StandardSite extends Plugin
 {
-    public string $schemaVersion = '1.1.0';
+    public string $schemaVersion = '1.2.0';
     public bool $hasCpSettings = true;
+    public bool $hasCpSection = true;
 
     public static function config(): array
     {
@@ -52,6 +55,7 @@ class StandardSite extends Plugin
                 'oauth' => OAuthService::class,
                 'api' => ApiService::class,
                 'publisher' => PublisherService::class,
+                'connection' => ConnectionService::class,
             ],
         ];
     }
@@ -63,6 +67,14 @@ class StandardSite extends Plugin
         $this->registerUrlRules();
         $this->registerEventHandlers();
         $this->registerTwigVariable();
+    }
+
+    public function getCpNavItem(): ?array
+    {
+        $item = parent::getCpNavItem();
+        $item['label'] = 'Standard.site';
+        $item['icon'] = '@studioespresso/standardsite/icon-mask.svg';
+        return $item;
     }
 
     protected function createSettingsModel(): ?Model
@@ -98,7 +110,7 @@ class StandardSite extends Plugin
                 $siteSettings = $settings->getSiteSettings($site->uid);
 
                 // Must be connected and have publish-on-save enabled for this site
-                if (!$this->oauth->isConnected() || !$siteSettings->publishOnSave) {
+                if (!$this->connection->isConnected() || !$siteSettings->publishOnSave) {
                     return;
                 }
 
@@ -136,7 +148,7 @@ class StandardSite extends Plugin
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
-                if ($this->oauth->isConnected() && $this->publisher->isPublished($entry->id, $entry->siteId)) {
+                if ($this->connection->isConnected() && $this->publisher->isPublished($entry->id, $entry->siteId)) {
                     $this->publisher->unpublishEntry($entry);
                 }
             }
@@ -165,7 +177,7 @@ class StandardSite extends Plugin
                     return;
                 }
 
-                $isConnected = $this->oauth->isConnected();
+                $isConnected = $this->connection->isConnected();
                 $isPublished = $isConnected && $this->publisher->isPublished($entry->id, $entry->siteId);
                 $atUri = $isPublished ? $this->publisher->getDocumentUri($entry->id, $entry->siteId) : null;
 
@@ -192,6 +204,15 @@ class StandardSite extends Plugin
 
     private function registerUrlRules(): void
     {
+        // CP routes
+        Event::on(
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_CP_URL_RULES,
+            function (RegisterUrlRulesEvent $event) {
+                $event->rules['standard-site'] = 'standard-site/cp/index';
+            }
+        );
+
         // Site routes (publicly accessible — needed for PDS to fetch metadata and redirect back)
         Event::on(
             UrlManager::class,

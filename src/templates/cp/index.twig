@@ -1,0 +1,116 @@
+{% extends '_layouts/cp' %}
+
+{% set title = 'Standard.site' %}
+{% set selectedSubnavItem = 'standard-site' %}
+
+{% set allSites = craft.app.sites.allSites %}
+{% set selectedSiteHandle = craft.app.request.getQueryParam('site') ?? allSites|first.handle %}
+{% set selectedSite = null %}
+{% for s in allSites %}
+    {% if s.handle == selectedSiteHandle %}
+        {% set selectedSite = s %}
+    {% endif %}
+{% endfor %}
+{% if not selectedSite %}
+    {% set selectedSite = allSites|first %}
+{% endif %}
+
+{% set settings = craft.app.plugins.getPlugin('standard-site').getSettings() %}
+{% set currentSiteSettings = settings.getSiteSettings(selectedSite.uid) %}
+
+{% block contextMenu %}
+    {% if allSites|length > 1 %}
+        <div id="revision-btn" class="btn menubtn" data-icon="world">{{ selectedSite.name }}</div>
+        <div class="menu">
+            <ul class="padded">
+                {% for s in allSites %}
+                    <li>
+                        <a href="{{ cpUrl('standard-site', { site: s.handle }) }}"
+                           {% if s.handle == selectedSite.handle %}class="sel"{% endif %}>
+                            {{ s.name }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<h2>{{ 'AT Protocol Connection'|t('standard-site') }}</h2>
+
+{% if isConnected %}
+    <div class="pane" style="margin-bottom: 14px;">
+        <p><strong>{{ 'Connected'|t('standard-site') }}</strong></p>
+        <p>{{ 'Handle'|t('standard-site') }}: <code>{{ connection.handle }}</code></p>
+        <p>{{ 'DID'|t('standard-site') }}: <code>{{ connection.did }}</code></p>
+        <p>{{ 'PDS'|t('standard-site') }}: <code>{{ connection.pdsUrl }}</code></p>
+    </div>
+
+    <a href="#" class="btn" id="standard-site-disconnect">{{ 'Disconnect'|t('standard-site') }}</a>
+
+{% else %}
+    {% if currentSiteSettings.handle %}
+        <div class="pane" style="margin-bottom: 14px;">
+            <p>{{ 'Handle for'|t('standard-site') }} {{ selectedSite.name }}: <code>{{ currentSiteSettings.handle }}</code></p>
+            <p class="light">{{ 'Handle is configured in'|t('standard-site') }} <a href="{{ cpUrl('settings/plugins/standard-site', { siteUid: selectedSite.uid }) }}">{{ 'plugin settings'|t('standard-site') }}</a>.</p>
+        </div>
+
+        <a href="#" class="btn submit" id="standard-site-connect" data-site-uid="{{ selectedSite.uid }}">{{ 'Connect with AT Protocol'|t('standard-site') }}</a>
+    {% else %}
+        <div class="pane">
+            <p class="light">{{ 'Set the AT Protocol handle for'|t('standard-site') }} {{ selectedSite.name }} {{ 'in'|t('standard-site') }} <a href="{{ cpUrl('settings/plugins/standard-site', { siteUid: selectedSite.uid }) }}">{{ 'plugin settings'|t('standard-site') }}</a> {{ 'first.'|t('standard-site') }}</p>
+        </div>
+    {% endif %}
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var connectBtn = document.getElementById('standard-site-connect');
+    var disconnectBtn = document.getElementById('standard-site-disconnect');
+
+    if (connectBtn) {
+        connectBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            var siteUid = connectBtn.getAttribute('data-site-uid');
+            connectBtn.classList.add('loading');
+            connectBtn.style.pointerEvents = 'none';
+
+            try {
+                var response = await Craft.sendActionRequest('POST', 'standard-site/cp/connect', {
+                    data: { siteUid: siteUid }
+                });
+                if (response.data.success && response.data.authUrl) {
+                    window.location.href = response.data.authUrl;
+                } else {
+                    Craft.cp.displayError(response.data.error || 'Connection failed.');
+                    connectBtn.classList.remove('loading');
+                    connectBtn.style.pointerEvents = '';
+                }
+            } catch (err) {
+                Craft.cp.displayError(err.response?.data?.error || 'Connection failed.');
+                connectBtn.classList.remove('loading');
+                connectBtn.style.pointerEvents = '';
+            }
+        });
+    }
+
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            if (!confirm('Are you sure you want to disconnect?')) return;
+            disconnectBtn.classList.add('loading');
+            try {
+                await Craft.sendActionRequest('POST', 'standard-site/cp/disconnect');
+                window.location.reload();
+            } catch (err) {
+                Craft.cp.displayError('Failed to disconnect.');
+                disconnectBtn.classList.remove('loading');
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

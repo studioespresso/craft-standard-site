@@ -28,6 +28,7 @@
     "name": "Standard Site",
     "developer": "Studio Espresso",
     "documentationUrl": "https://github.com/studioespresso/craft-standard-site",
+    "hasCpSection": true,
     "class": "studioespresso\\standardsite\\StandardSite"
   },
   "scripts": {

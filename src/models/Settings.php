@@ -7,22 +7,12 @@ use craft\base\Model;
 
 class Settings extends Model
 {
-    // Identity (global — one AT Protocol account)
-    public string $handle = '';
-    public string $did = '';
-    public string $pdsUrl = '';
-
-    // OAuth tokens (global, stored encrypted)
-    public ?string $accessToken = null;
-    public ?string $refreshToken = null;
-    public ?string $dpopKey = null;
-    public ?int $tokenExpiresAt = null;
-
     // Per-site settings keyed by site UID
     public array $siteSettings = [];
 
     // ── Legacy properties (for backward compatibility during migration) ──
     // These will be auto-migrated to siteSettings on first access
+    public string $handle = '';
     public ?string $publicationAtUri = null;
     public ?string $publicationCid = null;
     public ?string $publicationRkey = null;
@@ -49,6 +39,7 @@ class Settings extends Model
         $primarySite = Craft::$app->getSites()->getPrimarySite();
         if ($siteUid === $primarySite->uid && $this->hasLegacySettings()) {
             $model = new SiteSettings();
+            $model->handle = $this->handle ?? '';
             $model->publicationAtUri = $this->publicationAtUri;
             $model->publicationCid = $this->publicationCid;
             $model->publicationRkey = $this->publicationRkey;
@@ -77,16 +68,14 @@ class Settings extends Model
      */
     private function hasLegacySettings(): bool
     {
-        return !empty($this->publicationAtUri)
+        return !empty($this->handle)
+            || !empty($this->publicationAtUri)
             || !empty($this->publicationName)
             || !empty($this->enabledSections);
     }
 
     public function defineRules(): array
     {
-        return [
-            [['handle'], 'string'],
-            [['did', 'pdsUrl'], 'string'],
-        ];
+        return [];
     }
 }

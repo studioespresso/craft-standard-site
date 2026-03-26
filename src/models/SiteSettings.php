@@ -10,6 +10,9 @@ use craft\base\Model;
  */
 class SiteSettings extends Model
 {
+    // Identity
+    public string $handle = '';
+
     // Publication
     public ?string $publicationAtUri = null;
     public ?string $publicationCid = null;
