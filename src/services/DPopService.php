@@ -134,13 +134,10 @@ class DPopService extends Component
         $offset = 2; // Skip SEQUENCE tag + length
 
         // R
-        if ($offset >= $len || ord($der[$offset]) !== 0x02) {
+        if (ord($der[$offset]) !== 0x02) {
             throw new \RuntimeException('Invalid DER signature');
         }
         $offset++;
-        if ($offset >= $len) {
-            throw new \RuntimeException('Invalid DER signature');
-        }
         $rLen = ord($der[$offset]);
         $offset++;
         $r = substr($der, $offset, $rLen);
