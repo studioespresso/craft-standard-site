@@ -8,6 +8,7 @@ use craft\elements\Entry;
 use craft\helpers\Console;
 use studioespresso\standardsite\StandardSite;
 use studioespresso\standardsite\transformers\DocumentTransformer;
+use yii\base\Event;
 use yii\console\ExitCode;
 
 class DebugController extends Controller
@@ -52,12 +53,20 @@ class DebugController extends Controller
         $this->stdout("Section: {$entry->getSection()->name}\n", Console::FG_CYAN);
         $this->stdout("\n");
 
+        $hasListeners = Event::hasHandlers(DocumentTransformer::class, DocumentTransformer::EVENT_TRANSFORM_DOCUMENT);
+
         $transformer = new DocumentTransformer();
         $transformer->dryRun = true;
         $record = $transformer->transform($entry);
 
         $this->stdout("site.standard.document record:\n", Console::FG_GREEN);
         $this->stdout(json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+
+        if ($hasListeners) {
+            $this->stdout("\nEvent listeners are active — output may include overrides from EVENT_TRANSFORM_DOCUMENT handlers.\n", Console::FG_YELLOW);
+        } else {
+            $this->stdout("\nNo EVENT_TRANSFORM_DOCUMENT listeners registered — output is from built-in extraction only.\n", Console::FG_CYAN);
+        }
 
         return ExitCode::OK;
     }

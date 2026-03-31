@@ -133,6 +133,57 @@ Preview the `site.standard.document` record that would be generated for an entry
 
 Outputs the full document record as formatted JSON. Cover images show asset metadata instead of uploading.
 
+## Content extraction
+
+Every Craft site is different — content might live in a top-level CKEditor field, inside Matrix blocks, or be assembled from multiple fields. The plugin handles this in two layers:
+
+### Field selector (simple)
+
+In plugin settings, you can select which field to use for content and cover image per section. This works well when your content lives in a single top-level field.
+
+### Event (advanced)
+
+For complex field layouts, the `DocumentTransformer::EVENT_TRANSFORM_DOCUMENT` event lets you take full control of what content gets published. The event fires after the built-in extraction, passing the entry and the extracted values. Your listener can override any of them.
+
+```php
+use studioespresso\standardsite\transformers\DocumentTransformer;
+use studioespresso\standardsite\events\TransformDocumentEvent;
+use yii\base\Event;
+
+Event::on(
+    DocumentTransformer::class,
+    DocumentTransformer::EVENT_TRANSFORM_DOCUMENT,
+    function (TransformDocumentEvent $event) {
+        $entry = $event->entry;
+
+        // Override text content (plain text for search/previews)
+        $event->textContent = strip_tags((string)$entry->myMatrixField->one()?->bodyText);
+
+        // Override HTML content (rich content for rendering)
+        $event->htmlContent = (string)$entry->myMatrixField->one()?->bodyText;
+
+        // Override description
+        $event->description = $entry->shortDescription;
+
+        // Override tags
+        $event->tags = $entry->topics->all()->map(fn($t) => $t->title);
+    }
+);
+```
+
+Available properties on the event:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `entry` | `Entry` | The entry being transformed (read-only) |
+| `textContent` | `?string` | Plain text content (HTML stripped) |
+| `htmlContent` | `?string` | Rich HTML content |
+| `description` | `?string` | Short description / excerpt |
+| `tags` | `?array` | Array of tag strings |
+| `coverImage` | `?array` | Cover image blob reference |
+
+If you don't set a property, the plugin's built-in extraction (field selector or auto-detect) is used.
+
 ## Content format
 
 Each document record includes:

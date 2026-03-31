@@ -8,11 +8,15 @@ use craft\elements\Asset;
 use craft\elements\Entry;
 use craft\fields\Assets as AssetsField;
 use craft\fields\PlainText;
+use craft\base\Component;
+use studioespresso\standardsite\events\TransformDocumentEvent;
 use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
 
-class DocumentTransformer
+class DocumentTransformer extends Component
 {
+    public const EVENT_TRANSFORM_DOCUMENT = 'transformDocument';
+
     public bool $dryRun = false;
 
     public function transform(Entry $entry): array
@@ -36,49 +40,58 @@ class DocumentTransformer
         }
 
         $section = $entry->getSection();
+        $contentFieldUid = $siteSettings->sectionContentFields[$section->uid] ?? null;
+        $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
 
-        // Description: try SEO field first, then truncated text content
+        // Built-in extraction
         $description = $this->extractSeoDescription($entry);
-        if ($description) {
-            $record['description'] = $description;
+        $textContent = $this->extractTextContent($entry, $contentFieldUid);
+        $htmlContent = $this->extractHtmlContent($entry, $contentFieldUid);
+        $tags = $this->extractTags($entry);
+        $coverBlob = $this->uploadCoverImage($entry, $imageFieldUid);
+
+        // Fire event to allow overrides
+        $event = new TransformDocumentEvent([
+            'entry' => $entry,
+            'textContent' => $textContent,
+            'htmlContent' => $htmlContent,
+            'description' => $description,
+            'tags' => $tags ?: null,
+            'coverImage' => $coverBlob,
+        ]);
+        $this->trigger(self::EVENT_TRANSFORM_DOCUMENT, $event);
+
+        // Use event values (listeners may have overridden them)
+        if ($event->description) {
+            $record['description'] = $event->description;
         }
 
-        // Text content: from configured field or auto-detect
-        $contentFieldUid = $siteSettings->sectionContentFields[$section->uid] ?? null;
-        $textContent = $this->extractTextContent($entry, $contentFieldUid);
-        if ($textContent) {
-            $record['textContent'] = $textContent;
+        if ($event->textContent) {
+            $record['textContent'] = $event->textContent;
 
-            // Fallback description from content if no SEO description
+            // Fallback description from content if no description set
             if (!isset($record['description'])) {
-                $truncated = mb_substr($textContent, 0, 300);
-                if (mb_strlen($textContent) > 300) {
+                $truncated = mb_substr($event->textContent, 0, 300);
+                if (mb_strlen($event->textContent) > 300) {
                     $truncated .= '...';
                 }
                 $record['description'] = $truncated;
             }
         }
 
-        // Rich content: HTML from CKEditor fields
-        $htmlContent = $this->extractHtmlContent($entry, $contentFieldUid);
-        if ($htmlContent) {
+        if ($event->htmlContent) {
             $record['content'] = [
                 '$type' => $siteSettings->contentType,
-                'html' => $htmlContent,
+                'html' => $event->htmlContent,
             ];
         }
 
-        // Tags: from category fields
-        $tags = $this->extractTags($entry);
-        if (!empty($tags)) {
-            $record['tags'] = $tags;
+        if (!empty($event->tags)) {
+            $record['tags'] = $event->tags;
         }
 
-        // Cover image: from configured field or auto-detect
-        $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
-        $coverBlob = $this->uploadCoverImage($entry, $imageFieldUid);
-        if ($coverBlob) {
-            $record['coverImage'] = $coverBlob;
+        if ($event->coverImage) {
+            $record['coverImage'] = $event->coverImage;
         }
 
         // updatedAt: only if entry was modified after publish
