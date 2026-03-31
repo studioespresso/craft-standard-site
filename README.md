@@ -1,7 +1,8 @@
-# Standard Site
 
+# Standard Site
 Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [standard.site](https://standard.site) lexicons.
 
+![Screenshot](https://www.studioespresso.co/assets/standard-site-github.png)
 ## What is AT Protocol?
 
 The [AT Protocol](https://atproto.com) is the decentralized social networking protocol behind [Bluesky](https://bsky.app). Unlike traditional platforms, your content lives on your own Personal Data Server (PDS) and your identity is portable through decentralized identifiers (DIDs). Applications are built on open, shared schemas called lexicons — meaning your data isn't locked into any single platform.
