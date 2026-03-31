@@ -1,6 +1,36 @@
 # Standard Site
 
-Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [standard.site](https://standard.site) lexicons. Entries are synced as `site.standard.document` records on your Personal Data Server (PDS), making your content available across the decentralized AT Protocol ecosystem.
+Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [standard.site](https://standard.site) lexicons.
+
+## What is AT Protocol?
+
+The [AT Protocol](https://atproto.com) is the decentralized social networking protocol behind [Bluesky](https://bsky.app). Unlike traditional platforms, your content lives on your own Personal Data Server (PDS) and your identity is portable through decentralized identifiers (DIDs). Applications are built on open, shared schemas called lexicons — meaning your data isn't locked into any single platform.
+
+## What is standard.site?
+
+[standard.site](https://standard.site) defines a set of lexicons that extend AT Protocol for long-form website content. It introduces two main record types:
+
+- **`site.standard.publication`** — Represents your website or blog as a publication on AT Protocol
+- **`site.standard.document`** — Represents an individual page or article
+
+These lexicons bridge traditional websites with the decentralized AT Protocol ecosystem, making your content discoverable by AT Protocol readers and applications.
+
+## What does this plugin do?
+
+This plugin connects your Craft CMS site to AT Protocol through the standard.site lexicons. It:
+
+- Authenticates with your PDS using OAuth 2.1
+- Creates a `site.standard.publication` record that represents your site
+- Publishes Craft entries as `site.standard.document` records on your PDS
+- Keeps records in sync when entries are updated or deleted
+- Serves the `/.well-known/site.standard.publication` endpoint for discovery
+
+## Why use it?
+
+- **Own your content** — Your articles live on your PDS, not locked into a CMS or hosting provider
+- **Decentralized discovery** — Your content becomes part of the AT Protocol ecosystem, discoverable by readers like [Frontpage](https://frontpage.fyi) and other AT Protocol applications
+- **Portable identity** — Your publication is tied to your AT Protocol identity (e.g. your domain or Bluesky handle), not to a specific platform
+- **Future-proof** — As more readers and aggregators build on AT Protocol and standard.site, your content is already there
 
 ## Requirements
 
@@ -25,28 +55,26 @@ composer require studioespresso/craft-standard-site
 
 ## Setup
 
-### 1. Configure your handle
+The plugin separates configuration into two parts: **plugin settings** (stored in project config, configured in development) and the **CP section page** (writes to the database, works on production with `allowAdminChanges = false`).
 
-Go to **Settings > Plugins > Standard Site** and enter your AT Protocol handle (e.g. `yourname.bsky.social` or your custom domain) for each site.
+### Plugin Settings (development)
 
-### 2. Connect to AT Protocol
+These are configured in **Settings > Plugins > Standard Site** and deploy with your project config:
 
-Visit the **Standard.site** page in the CP sidebar. Select your site and click **Connect with AT Protocol**. This initiates an OAuth 2.1 flow with your PDS.
+1. **AT Protocol Handle** — Your handle for each site (e.g. `yourname.bsky.social` or your custom domain)
+2. **Publication Name & Description** — How your publication appears on AT Protocol
+3. **Enabled Sections** — Which sections should be synced
+4. **Field Mappings** — Per section, which field to use for content and cover image (or auto-detect)
+5. **Publish on Save** — Toggle automatic syncing when entries are saved
 
-### 3. Create a publication record
+### CP Section Page (production)
 
-Back in **Settings > Plugins > Standard Site**, fill in your publication name and description, then click **Create Publication Record**. This creates a `site.standard.publication` record on your PDS.
+These actions happen on the **Standard.site** page in the CP sidebar and work regardless of `allowAdminChanges`:
 
-### 4. Enable sections
+1. **Connect to AT Protocol** — Authenticates with your PDS via OAuth 2.1. Connection data (tokens, DID, PDS URL) is stored in the database, not project config.
+2. **Create Publication Record** — Pushes a `site.standard.publication` record to your PDS. This must be done on each environment separately since it registers your site with your PDS.
 
-Under **Sync Settings**, check which sections should be synced to AT Protocol. For each enabled section you can configure:
-
-- **Content Field** — Which CKEditor or PlainText field to use for the document text content. Defaults to auto-detecting all text fields.
-- **Cover Image Field** — Which Assets field to use for the cover image. Defaults to auto-detecting the first image field.
-
-### 5. Enable auto-publish
-
-Toggle **Publish on Save** to automatically sync entries when they are saved. When disabled, you can still publish manually from the entry sidebar.
+The typical workflow is: configure everything in development via plugin settings, deploy to production, then connect and create the publication record on production.
 
 ## Multi-site
 
