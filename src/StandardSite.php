@@ -25,7 +25,7 @@ use studioespresso\standardsite\variables\StandardSiteVariable;
 use yii\base\Event;
 
 /**
- * Standard Site plugin — publish Craft CMS entries to AT Protocol via standard.site lexicons.
+ * Standard.site plugin — publish Craft CMS entries to AT Protocol via standard.site lexicons.
  *
  * @method static StandardSite getInstance()
  * @method Settings getSettings()

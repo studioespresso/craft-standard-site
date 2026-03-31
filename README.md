@@ -1,6 +1,6 @@
 
-# Standard Site
-Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [standard.site](https://standard.site) lexicons.
+# Standard.site for Craft CMS
+Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [Standard.site](https://standard.site) lexicons.
 
 ![Screenshot](https://www.studioespresso.co/assets/standard-site-github.png)
 ## What is AT Protocol?
@@ -44,7 +44,7 @@ You can install this plugin from the Plugin Store or with Composer.
 
 #### From the Plugin Store
 
-Go to the Plugin Store in your project's Control Panel and search for "Standard Site". Then press "Install".
+Go to the Plugin Store in your project's Control Panel and search for "Standard.site". Then press "Install".
 
 #### With Composer
 
@@ -60,7 +60,7 @@ The plugin separates configuration into two parts: **plugin settings** (stored i
 
 ### Plugin Settings (development)
 
-These are configured in **Settings > Plugins > Standard Site** and deploy with your project config:
+These are configured in **Settings > Plugins > Standard.site** and deploy with your project config:
 
 1. **AT Protocol Handle** — Your handle for each site (e.g. `yourname.bsky.social` or your custom domain)
 2. **Publication Name & Description** — How your publication appears on AT Protocol

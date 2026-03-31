@@ -22,7 +22,7 @@ class OauthController extends Controller
 
         $metadata = [
             'client_id' => $oauth->getClientId($currentSite->handle),
-            'client_name' => 'Standard Site for Craft CMS',
+            'client_name' => 'Standard.site for Craft CMS',
             'client_uri' => rtrim($currentSite->getBaseUrl(), '/'),
             'redirect_uris' => [$oauth->getRedirectUri($currentSite->handle)],
             'grant_types' => ['authorization_code', 'refresh_token'],

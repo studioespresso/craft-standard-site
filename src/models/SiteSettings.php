@@ -5,7 +5,7 @@ namespace studioespresso\standardsite\models;
 use craft\base\Model;
 
 /**
- * Per-site settings for Standard Site plugin.
+ * Per-site settings for Standard.site plugin.
  * Each Craft site can have its own publication and sync configuration.
  */
 class SiteSettings extends Model
