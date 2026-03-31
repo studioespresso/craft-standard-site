@@ -32,6 +32,7 @@ class Install extends Migration
             $this->createTable('{{%standardsite_connections}}', [
                 'id' => $this->primaryKey(),
                 'handle' => $this->string(255)->notNull(),
+                'siteHandle' => $this->string(255)->null(),
                 'did' => $this->string(255)->notNull(),
                 'pdsUrl' => $this->string(512)->notNull(),
                 'accessToken' => $this->text()->null(),

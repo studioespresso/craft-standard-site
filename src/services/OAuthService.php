@@ -150,7 +150,7 @@ class OAuthService extends Component
         $tokenData = [
             'grant_type' => 'refresh_token',
             'refresh_token' => $refreshToken,
-            'client_id' => $this->getClientId(),
+            'client_id' => $this->getClientId($conn->getSiteHandle()),
         ];
 
         $tokens = $this->tokenRequest($tokenEndpoint, $tokenData, $proof, $dpopKey);
@@ -315,6 +315,7 @@ class OAuthService extends Component
             $cacheData['pdsUrl'],
             $tokens,
             $dpopKey,
+            $cacheData['siteHandle'] ?? null,
         );
     }
 }

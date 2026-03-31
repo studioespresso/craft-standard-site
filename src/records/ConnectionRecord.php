@@ -7,6 +7,7 @@ use craft\db\ActiveRecord;
 /**
  * @property int $id
  * @property string $handle
+ * @property string|null $siteHandle
  * @property string $did
  * @property string $pdsUrl
  * @property string|null $accessToken

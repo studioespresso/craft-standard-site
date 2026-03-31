@@ -64,14 +64,23 @@ class ConnectionService extends Component
     }
 
     /**
+     * Get the Craft site handle used during OAuth (for correct client_id on refresh).
+     */
+    public function getSiteHandle(): ?string
+    {
+        return $this->getConnection()?->siteHandle;
+    }
+
+    /**
      * Store a new connection after successful OAuth.
      */
-    public function saveConnection(string $handle, string $did, string $pdsUrl, array $tokens, array $dpopKey): void
+    public function saveConnection(string $handle, string $did, string $pdsUrl, array $tokens, array $dpopKey, ?string $siteHandle = null): void
     {
         $encryption = StandardSite::getInstance()->encryption;
 
         $record = $this->getConnection() ?? new ConnectionRecord();
         $record->handle = $handle;
+        $record->siteHandle = $siteHandle;
         $record->did = $did;
         $record->pdsUrl = $pdsUrl;
         $record->accessToken = $encryption->encrypt($tokens['access_token']);
