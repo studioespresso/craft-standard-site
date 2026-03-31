@@ -1,23 +1,30 @@
 <fieldset id="standard-site-sidebar">
     <legend class="h6">Standard.site</legend>
-
-    {% if not isConnected %}
-        <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('standard-site') }}">Connect</a></p>
-    {% elseif isPublished %}
-        <div class="flex" style="align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="status green"></span> <span>Published</span>
-        </div>
-        {% if atUri %}
-            <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
+    <div class="meta" style="padding: 14px;">
+        {% if not isConnected %}
+            <p class="light">Not connected to AT Protocol. <a href="{{ cpUrl('standard-site') }}">Connect</a></p>
+        {% elseif isPublished %}
+            <div class="data">
+                <div class="flex" style="align-items: center; gap: 6px;">
+                    <span class="status green"></span> <span>Published</span>
+                </div>
+            </div>
+            {% if atUri %}
+                <div class="data">
+                    <a href="https://pdsls.dev/at/{{ atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener" class="go">View on PDS</a>
+                </div>
+            {% endif %}
+            <div class="btngroup">
+                <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Update</a>
+                <a href="{{ actionUrl('standard-site/entry/unpublish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Unpublish</a>
+            </div>
+        {% else %}
+            <div class="data">
+                <div class="flex" style="align-items: center; gap: 6px;">
+                    <span class="status"></span> <span>Not published</span>
+                </div>
+            </div>
+            <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn submit">Publish</a>
         {% endif %}
-        <div class="btngroup" style="margin-top: 10px;">
-            <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Update</a>
-            <a href="{{ actionUrl('standard-site/entry/unpublish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn">Unpublish</a>
-        </div>
-    {% else %}
-        <div class="flex" style="align-items: center; gap: 6px; margin-bottom: 8px;">
-            <span class="status"></span> <span>Not published</span>
-        </div>
-        <a href="{{ actionUrl('standard-site/entry/publish', { entryId: entry.id, siteId: entry.siteId }) }}" class="btn submit">Publish</a>
-    {% endif %}
+    </div>
 </fieldset>
