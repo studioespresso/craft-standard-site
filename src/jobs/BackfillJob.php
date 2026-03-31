@@ -34,17 +34,7 @@ class BackfillJob extends BaseJob
         }
 
         // Resolve site ID from UID
-        $site = null;
-        foreach (Craft::$app->getSites()->getAllSites() as $s) {
-            if ($s->uid === $this->siteUid) {
-                $site = $s;
-                break;
-            }
-        }
-
-        if (!$site) {
-            return;
-        }
+        $site = Craft::$app->getSites()->getSiteByUid($this->siteUid);
 
         // Get section IDs from UIDs
         $sectionIds = [];

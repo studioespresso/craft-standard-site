@@ -35,17 +35,7 @@ class SettingsController extends Controller
         $siteSettings->publicationDescription = $publicationDescription;
 
         // Resolve Craft site for this UID
-        $site = null;
-        foreach (Craft::$app->getSites()->getAllSites() as $s) {
-            if ($s->uid === $siteUid) {
-                $site = $s;
-                break;
-            }
-        }
-
-        if (!$site) {
-            return $this->asJson(['success' => false, 'error' => 'Site not found']);
-        }
+        $site = Craft::$app->getSites()->getSiteByUid($siteUid);
 
         // Get existing publication record from DB
         $pubRecord = PublicationRecord::findBySiteUid($siteUid);

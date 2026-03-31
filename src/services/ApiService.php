@@ -121,21 +121,34 @@ class ApiService extends Component
         $accessToken = $plugin->oauth->getAccessToken();
 
         $dpopKey = $conn->getDpopKey();
+        if (!$dpopKey) {
+            throw new \RuntimeException('No DPoP key available');
+        }
         $proof = $dpop->createProof($dpopKey, 'POST', $url, $accessToken);
 
-        $response = $this->getClient()->post($url, [
-            'headers' => [
-                'Authorization' => "DPoP {$accessToken}",
-                'DPoP' => $proof,
-                'Content-Type' => $mimeType,
-            ],
-            'body' => $binaryData,
-        ]);
+        try {
+            $response = $this->getClient()->post($url, [
+                'headers' => [
+                    'Authorization' => "DPoP {$accessToken}",
+                    'DPoP' => $proof,
+                    'Content-Type' => $mimeType,
+                ],
+                'body' => $binaryData,
+            ]);
 
-        $this->extractNonce($response);
+            $this->extractNonce($response);
 
-        $result = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        return $result['blob'];
+            $result = json_decode((string)$response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+            if (!isset($result['blob'])) {
+                throw new \RuntimeException('Invalid upload blob response: missing blob field');
+            }
+
+            return $result['blob'];
+        } catch (ClientException $e) {
+            $body = json_decode((string)$e->getResponse()->getBody(), true) ?? [];
+            throw new \RuntimeException('Blob upload failed: ' . ($body['message'] ?? $e->getMessage()));
+        }
     }
 
     public function createRecord(string $collection, array $record, ?string $rkey = null): array

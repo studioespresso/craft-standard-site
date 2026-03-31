@@ -20,11 +20,17 @@ class EncryptionService extends Component
 
         $decoded = base64_decode($value, true);
         if ($decoded === false) {
+            Craft::error('[standard-site] Failed to base64 decode encrypted value', __METHOD__);
             return null;
         }
 
         $decrypted = Craft::$app->getSecurity()->decryptByKey($decoded);
 
-        return $decrypted === false ? null : $decrypted;
+        if ($decrypted === false) {
+            Craft::error('[standard-site] Decryption failed — possible data corruption or security key mismatch', __METHOD__);
+            return null;
+        }
+
+        return $decrypted;
     }
 }

@@ -29,7 +29,7 @@ class DocumentTransformer extends Component
             '$type' => 'site.standard.document',
             'site' => PublicationRecord::getAtUri($site->uid),
             'title' => $entry->title,
-            'publishedAt' => $entry->postDate->format(\DateTime::ATOM),
+            'publishedAt' => $entry->postDate?->format(\DateTime::ATOM) ?? $entry->dateCreated->format(\DateTime::ATOM),
         ];
 
         // Path: entry URL relative to site base URL
@@ -257,8 +257,13 @@ class DocumentTransformer extends Component
 
             try {
                 $stream = $asset->getStream();
-                $binaryData = stream_get_contents($stream);
-                fclose($stream);
+                try {
+                    $binaryData = stream_get_contents($stream);
+                } finally {
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }
 
                 if (!$binaryData) {
                     return null;

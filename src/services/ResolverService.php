@@ -97,6 +97,7 @@ class ResolverService extends Component
 
             return $did;
         } catch (GuzzleException $e) {
+            Craft::warning("[standard-site] HTTPS handle resolution failed for {$handle}: {$e->getMessage()}", __METHOD__);
             return null;
         }
     }

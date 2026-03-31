@@ -178,16 +178,20 @@ class StandardSite extends Plugin
                     return;
                 }
 
-                $isConnected = $this->connection->isConnected();
-                $isPublished = $isConnected && $this->publisher->isPublished($entry->id, $entry->siteId);
-                $atUri = $isPublished ? $this->publisher->getDocumentUri($entry->id, $entry->siteId) : null;
+                try {
+                    $isConnected = $this->connection->isConnected();
+                    $isPublished = $isConnected && $this->publisher->isPublished($entry->id, $entry->siteId);
+                    $atUri = $isPublished ? $this->publisher->getDocumentUri($entry->id, $entry->siteId) : null;
 
-                $event->html .= Craft::$app->getView()->renderTemplate('standard-site/_entry-sidebar', [
-                    'entry' => $entry,
-                    'isConnected' => $isConnected,
-                    'isPublished' => $isPublished,
-                    'atUri' => $atUri,
-                ]);
+                    $event->html .= Craft::$app->getView()->renderTemplate('standard-site/_entry-sidebar', [
+                        'entry' => $entry,
+                        'isConnected' => $isConnected,
+                        'isPublished' => $isPublished,
+                        'atUri' => $atUri,
+                    ]);
+                } catch (\Throwable $e) {
+                    Craft::error("[standard-site] Failed to render entry sidebar: {$e->getMessage()}", __METHOD__);
+                }
             }
         );
     }

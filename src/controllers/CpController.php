@@ -16,8 +16,10 @@ class CpController extends Controller
 
     public function init(): void
     {
-        if (Craft::$app->getRequest()->getQueryParam('site')) {
-            $this->site = Craft::$app->getSites()->getSiteByHandle(Craft::$app->getRequest()->getQueryParam('site'));
+        $siteHandle = Craft::$app->getRequest()->getQueryParam('site');
+        if ($siteHandle) {
+            $this->site = Craft::$app->getSites()->getSiteByHandle($siteHandle)
+                ?? Craft::$app->getSites()->getPrimarySite();
         } else {
             $this->site = Craft::$app->getSites()->getPrimarySite();
         }
@@ -60,6 +62,7 @@ class CpController extends Controller
 
     public function actionConnect(): Response
     {
+        $this->requirePostRequest();
         $this->requireAcceptsJson();
 
         $siteUid = Craft::$app->getRequest()->getRequiredBodyParam('siteUid');
@@ -71,13 +74,8 @@ class CpController extends Controller
         }
 
         // Resolve site handle from UID for cleaner OAuth URLs
-        $siteHandle = null;
-        foreach (Craft::$app->getSites()->getAllSites() as $s) {
-            if ($s->uid === $siteUid) {
-                $siteHandle = $s->handle;
-                break;
-            }
-        }
+        $site = Craft::$app->getSites()->getSiteByUid($siteUid);
+        $siteHandle = $site->handle;
 
         try {
             $authUrl = StandardSite::getInstance()->oauth->authorize($siteSettings->handle, $siteHandle);
@@ -90,6 +88,7 @@ class CpController extends Controller
 
     public function actionDisconnect(): Response
     {
+        $this->requirePostRequest();
         $this->requireAcceptsJson();
 
         StandardSite::getInstance()->connection->deleteConnection();

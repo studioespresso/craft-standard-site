@@ -126,23 +126,34 @@ class DPopService extends Component
      */
     private static function derToRaw(string $der): string
     {
+        $len = strlen($der);
+        if ($len < 8) {
+            throw new \RuntimeException('Invalid DER signature: too short');
+        }
+
         $offset = 2; // Skip SEQUENCE tag + length
 
         // R
-        if (ord($der[$offset]) !== 0x02) {
+        if ($offset >= $len || ord($der[$offset]) !== 0x02) {
             throw new \RuntimeException('Invalid DER signature');
         }
         $offset++;
+        if ($offset >= $len) {
+            throw new \RuntimeException('Invalid DER signature');
+        }
         $rLen = ord($der[$offset]);
         $offset++;
         $r = substr($der, $offset, $rLen);
         $offset += $rLen;
 
         // S
-        if (ord($der[$offset]) !== 0x02) {
+        if ($offset >= $len || ord($der[$offset]) !== 0x02) {
             throw new \RuntimeException('Invalid DER signature');
         }
         $offset++;
+        if ($offset >= $len) {
+            throw new \RuntimeException('Invalid DER signature');
+        }
         $sLen = ord($der[$offset]);
         $offset++;
         $s = substr($der, $offset, $sLen);

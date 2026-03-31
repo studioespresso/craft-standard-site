@@ -177,6 +177,9 @@ class OAuthService extends Component
         if ($expiresAt && $expiresAt < time() + 300) {
             $this->refreshToken();
             $accessToken = $conn->getAccessToken();
+            if (!$accessToken) {
+                throw new \RuntimeException('Failed to refresh access token');
+            }
         }
 
         return $accessToken;
@@ -212,7 +215,7 @@ class OAuthService extends Component
         return Craft::$app->getSites()->getPrimarySite()->getBaseUrl();
     }
 
-    private function authorizeViaPar(array $authServer, array $dpopKey, string $state, string $codeChallenge, string $clientId, string $redirectUri): string
+    private function authorizeViaPar(array $authServer, array $dpopKey, string $state, string $codeChallenge, string $clientId, string $redirectUri, int $retryCount = 0): string
     {
         $plugin = StandardSite::getInstance();
         $parEndpoint = $authServer['pushed_authorization_request_endpoint'];
@@ -256,12 +259,11 @@ class OAuthService extends Component
             $body = json_decode((string)$response->getBody(), true) ?? [];
 
             // Handle DPoP nonce requirement on PAR
-            if (($body['error'] ?? '') === 'use_dpop_nonce') {
+            if (($body['error'] ?? '') === 'use_dpop_nonce' && $retryCount < 2) {
                 $nonce = $response->getHeaderLine('DPoP-Nonce');
                 if ($nonce) {
                     $plugin->dpop->setNonce($nonce);
-                    // Retry with nonce
-                    return $this->authorizeViaPar($authServer, $dpopKey, $state, $codeChallenge, $clientId, $redirectUri);
+                    return $this->authorizeViaPar($authServer, $dpopKey, $state, $codeChallenge, $clientId, $redirectUri, $retryCount + 1);
                 }
             }
 
@@ -273,7 +275,7 @@ class OAuthService extends Component
     /**
      * Make a token request with DPoP, handling nonce retries.
      */
-    private function tokenRequest(string $endpoint, array $data, string $proof, array $dpopKey): array
+    private function tokenRequest(string $endpoint, array $data, string $proof, array $dpopKey, int $retryCount = 0): array
     {
         try {
             $response = $this->getClient()->post($endpoint, [
@@ -293,13 +295,13 @@ class OAuthService extends Component
             $body = json_decode((string)$response->getBody(), true) ?? [];
 
             // DPoP nonce retry
-            if (($body['error'] ?? '') === 'use_dpop_nonce') {
+            if (($body['error'] ?? '') === 'use_dpop_nonce' && $retryCount < 2) {
                 $nonce = $response->getHeaderLine('DPoP-Nonce');
                 if ($nonce) {
                     $plugin = StandardSite::getInstance();
                     $plugin->dpop->setNonce($nonce);
                     $newProof = $plugin->dpop->createProof($dpopKey, 'POST', $endpoint);
-                    return $this->tokenRequest($endpoint, $data, $newProof, $dpopKey);
+                    return $this->tokenRequest($endpoint, $data, $newProof, $dpopKey, $retryCount + 1);
                 }
             }
 
