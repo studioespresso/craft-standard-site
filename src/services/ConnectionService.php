@@ -22,7 +22,9 @@ class ConnectionService extends Component
     public function getConnection(): ?ConnectionRecord
     {
         if (!$this->_fetched) {
-            $this->_connection = ConnectionRecord::find()->one();
+            /** @var ConnectionRecord|null $connection */
+            $connection = ConnectionRecord::find()->one();
+            $this->_connection = $connection;
             $this->_fetched = true;
         }
         return $this->_connection;

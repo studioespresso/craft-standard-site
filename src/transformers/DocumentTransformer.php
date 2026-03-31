@@ -3,12 +3,12 @@
 namespace studioespresso\standardsite\transformers;
 
 use Craft;
+use craft\base\Component;
 use craft\ckeditor\Field as CKEditorField;
 use craft\elements\Asset;
 use craft\elements\Entry;
 use craft\fields\Assets as AssetsField;
 use craft\fields\PlainText;
-use craft\base\Component;
 use studioespresso\standardsite\events\TransformDocumentEvent;
 use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\StandardSite;
@@ -44,7 +44,6 @@ class DocumentTransformer extends Component
         $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
 
         // Built-in extraction
-        $description = $this->extractSeoDescription($entry);
         $textContent = $this->extractTextContent($entry, $contentFieldUid);
         $htmlContent = $this->extractHtmlContent($entry, $contentFieldUid);
         $tags = $this->extractTags($entry);
@@ -55,7 +54,6 @@ class DocumentTransformer extends Component
             'entry' => $entry,
             'textContent' => $textContent,
             'htmlContent' => $htmlContent,
-            'description' => $description,
             'tags' => $tags ?: null,
             'coverImage' => $coverBlob,
         ]);
@@ -107,24 +105,6 @@ class DocumentTransformer extends Component
         return 'site.standard.document';
     }
 
-    private function extractSeoDescription(Entry $entry): ?string
-    {
-        $fieldLayout = $entry->getFieldLayout();
-        if (!$fieldLayout) {
-            return null;
-        }
-
-        foreach ($fieldLayout->getCustomFields() as $field) {
-            if ($field instanceof \studioespresso\seofields\fields\SeoField) {
-                $value = $entry->getFieldValue($field->handle);
-                if ($value && !empty($value->metaDescription)) {
-                    return $value->metaDescription;
-                }
-            }
-        }
-
-        return null;
-    }
 
     private function extractTextContent(Entry $entry, ?string $contentFieldUid = null): ?string
     {

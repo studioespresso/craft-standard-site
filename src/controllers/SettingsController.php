@@ -48,7 +48,7 @@ class SettingsController extends Controller
         }
 
         // Get existing publication record from DB
-        $pubRecord = PublicationRecord::find()->where(['siteUid' => $siteUid])->one();
+        $pubRecord = PublicationRecord::findBySiteUid($siteUid);
 
         $transformer = new PublicationTransformer();
         $record = $transformer->transformForSite($site, $siteSettings);
@@ -83,5 +83,4 @@ class SettingsController extends Controller
             return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
         }
     }
-
 }

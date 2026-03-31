@@ -12,8 +12,8 @@ use craft\events\RegisterUrlRulesEvent;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
 use studioespresso\standardsite\jobs\PublishEntryJob;
-use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\models\Settings;
+use studioespresso\standardsite\records\PublicationRecord;
 use studioespresso\standardsite\services\ApiService;
 use studioespresso\standardsite\services\ConnectionService;
 use studioespresso\standardsite\services\DPopService;
@@ -97,7 +97,7 @@ class StandardSite extends Plugin
         Event::on(
             Entry::class,
             Entry::EVENT_AFTER_SAVE,
-            function (ModelEvent $event) {
+            function(ModelEvent $event) {
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
@@ -145,7 +145,7 @@ class StandardSite extends Plugin
         Event::on(
             Entry::class,
             Entry::EVENT_AFTER_DELETE,
-            function (Event $event) {
+            function(Event $event) {
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
@@ -159,7 +159,7 @@ class StandardSite extends Plugin
         Event::on(
             Entry::class,
             Entry::EVENT_DEFINE_SIDEBAR_HTML,
-            function (DefineHtmlEvent $event) {
+            function(DefineHtmlEvent $event) {
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
@@ -197,7 +197,7 @@ class StandardSite extends Plugin
         Event::on(
             CraftVariable::class,
             CraftVariable::EVENT_INIT,
-            function (Event $event) {
+            function(Event $event) {
                 $event->sender->set('standardSite', StandardSiteVariable::class);
             }
         );
@@ -209,7 +209,7 @@ class StandardSite extends Plugin
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
-            function (RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event) {
                 $event->rules['standard-site'] = 'standard-site/cp/index';
             }
         );
@@ -218,7 +218,7 @@ class StandardSite extends Plugin
         Event::on(
             UrlManager::class,
             UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-            function (RegisterUrlRulesEvent $event) {
+            function(RegisterUrlRulesEvent $event) {
                 $event->rules['.well-known/site.standard.publication'] = 'standard-site/well-known/publication';
                 $event->rules['standard-site/oauth/client-metadata'] = 'standard-site/oauth/client-metadata';
                 $event->rules['standard-site/oauth/callback'] = 'standard-site/oauth/callback';

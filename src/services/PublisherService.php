@@ -71,6 +71,7 @@ class PublisherService extends Component
             return;
         }
 
+        /** @var EntryRecord[] $records */
         $records = EntryRecord::find()
             ->where(['entryId' => $entry->id, 'siteId' => $entry->siteId])
             ->all();
@@ -106,6 +107,7 @@ class PublisherService extends Component
 
     private function getRecord(int $entryId, int $siteId, string $collection): ?EntryRecord
     {
+        /** @var EntryRecord|null */
         return EntryRecord::find()
             ->where([
                 'entryId' => $entryId,

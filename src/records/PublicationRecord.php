@@ -20,6 +20,7 @@ class PublicationRecord extends ActiveRecord
 
     public static function findBySiteUid(string $siteUid): ?self
     {
+        /** @var self|null */
         return self::find()->where(['siteUid' => $siteUid])->one();
     }
 

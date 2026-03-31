@@ -4,7 +4,6 @@ namespace studioespresso\standardsite\controllers;
 
 use Craft;
 use craft\elements\Entry;
-use craft\helpers\UrlHelper;
 use craft\web\Controller;
 use studioespresso\standardsite\StandardSite;
 use yii\web\Response;

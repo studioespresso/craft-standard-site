@@ -5,3 +5,6 @@ parameters:
     level: 4
     paths:
         - src
+    ignoreErrors:
+        - '#Class craft\\ckeditor\\Field not found#'
+        - '#on an unknown class craft\\ckeditor\\Field#'

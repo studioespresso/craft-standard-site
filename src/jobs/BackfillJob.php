@@ -18,7 +18,7 @@ class BackfillJob extends BaseJob
         $settings = $plugin->getSettings();
         $siteSettings = $settings->getSiteSettings($this->siteUid);
 
-        if (!$plugin->oauth->isConnected()) {
+        if (!$plugin->connection->isConnected()) {
             Craft::warning('[standard-site] Backfill skipped: not connected', __METHOD__);
             return;
         }

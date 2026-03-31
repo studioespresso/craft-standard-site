@@ -6,7 +6,6 @@ use Craft;
 use craft\console\Controller;
 use craft\elements\Entry;
 use craft\helpers\Console;
-use studioespresso\standardsite\StandardSite;
 use studioespresso\standardsite\transformers\DocumentTransformer;
 use yii\base\Event;
 use yii\console\ExitCode;

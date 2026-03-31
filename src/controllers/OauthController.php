@@ -69,5 +69,4 @@ class OauthController extends Controller
 
         return $this->redirect(\craft\helpers\UrlHelper::cpUrl('standard-site'));
     }
-
 }
