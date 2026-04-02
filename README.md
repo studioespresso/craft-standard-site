@@ -3,6 +3,9 @@
 Publish your Craft CMS content to the [AT Protocol](https://atproto.com) using the [Standard.site](https://standard.site) lexicons.
 
 ![Screenshot](https://www.studioespresso.co/assets/standard-site-github.png)
+
+> **TL;DR** — This plugin puts your Craft CMS articles on AT Protocol (the network behind Bluesky). Your content gets its own place on the decentralized web, discoverable by readers like [Frontpage](https://frontpage.fyi) and any future app that speaks AT Protocol. Think of it as RSS for a new, open internet — except your content lives on infrastructure you control, tied to an identity you own.
+
 ## What is AT Protocol?
 
 The [AT Protocol](https://atproto.com) is the decentralized social networking protocol behind [Bluesky](https://bsky.app). Unlike traditional platforms, your content lives on your own Personal Data Server (PDS) and your identity is portable through decentralized identifiers (DIDs). Applications are built on open, shared schemas called lexicons — meaning your data isn't locked into any single platform.
