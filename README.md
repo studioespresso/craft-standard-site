@@ -196,3 +196,11 @@ Each document record includes:
 - **`content`** — Rich content using the `org.wordpress.html` content type (the established HTML standard for AT Protocol). Contains the raw HTML from CKEditor fields.
 
 The content type is configurable via the `contentType` property in site settings.
+
+---
+
+## Credits
+
+This plugin was inspired by [ATmosphere](https://github.com/Automattic/wordpress-atmosphere), the AT Protocol plugin for WordPress by Automattic.
+
+Built with [Claude Code](https://claude.ai/code).
