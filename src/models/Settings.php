@@ -5,13 +5,17 @@ namespace studioespresso\standardsite\models;
 use Craft;
 use craft\base\Model;
 
+/**
+ * Plugin settings model. Per-site configuration is stored in the siteSettings array.
+ */
 class Settings extends Model
 {
-    // Per-site settings keyed by site UID
+    /** @var array<string, array<string, mixed>> Per-site settings keyed by site UID */
     public array $siteSettings = [];
 
     // ── Legacy properties (for backward compatibility during migration) ──
-    // These will be auto-migrated to siteSettings on first access
+    // These will be auto-migrated to siteSettings on first access.
+    // @deprecated Remove in a future major version.
     public string $handle = '';
     public ?string $publicationAtUri = null;
     public ?string $publicationCid = null;
@@ -20,6 +24,7 @@ class Settings extends Model
     public string $publicationDescription = '';
     public bool $crossPostToBluesky = false;
     public bool $publishOnSave = true;
+    /** @var string[] */
     public array $enabledSections = [];
 
     /**

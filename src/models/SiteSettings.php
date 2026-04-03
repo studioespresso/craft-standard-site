@@ -23,13 +23,15 @@ class SiteSettings extends Model
     // Sync options
     public bool $publishOnSave = true;
     public bool $crossPostToBluesky = false;
+    /** @var string[] Section UIDs */
     public array $enabledSections = [];
 
     // Content format type for the document content field
     public string $contentType = 'org.wordpress.html';
 
-    // Per-section field mappings: sectionUid => fieldUid
+    /** @var array<string, string> sectionUid => fieldUid */
     public array $sectionImageFields = [];
+    /** @var array<string, string> sectionUid => fieldUid */
     public array $sectionContentFields = [];
 
     public function defineRules(): array

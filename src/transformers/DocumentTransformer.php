@@ -23,7 +23,15 @@ class DocumentTransformer extends Component
     {
         $settings = StandardSite::getInstance()->getSettings();
         $site = Craft::$app->getSites()->getSiteById($entry->siteId);
+        if (!$site) {
+            throw new \RuntimeException("Site not found for entry #{$entry->id}");
+        }
         $siteSettings = $settings->getSiteSettings($site->uid);
+
+        $section = $entry->getSection();
+        if (!$section) {
+            throw new \RuntimeException("Section not found for entry #{$entry->id}");
+        }
 
         $record = [
             '$type' => 'site.standard.document',
@@ -34,12 +42,11 @@ class DocumentTransformer extends Component
 
         // Path: entry URL relative to site base URL
         $entryUrl = $entry->getUrl();
-        if ($entryUrl && $site) {
+        if ($entryUrl) {
             $baseUrl = rtrim($site->getBaseUrl(), '/');
             $record['path'] = '/' . ltrim(str_replace($baseUrl, '', $entryUrl), '/');
         }
 
-        $section = $entry->getSection();
         $contentFieldUid = $siteSettings->sectionContentFields[$section->uid] ?? null;
         $imageFieldUid = $siteSettings->sectionImageFields[$section->uid] ?? null;
 

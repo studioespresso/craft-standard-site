@@ -18,6 +18,9 @@ class PublisherService extends Component
         $plugin = StandardSite::getInstance();
         $settings = $plugin->getSettings();
         $site = Craft::$app->getSites()->getSiteById($entry->siteId);
+        if (!$site) {
+            throw new \RuntimeException("Site not found for entry #{$entry->id}");
+        }
         $siteSettings = $settings->getSiteSettings($site->uid);
 
         if (!$plugin->connection->isConnected()) {
