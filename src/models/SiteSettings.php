@@ -20,6 +20,15 @@ class SiteSettings extends Model
     public string $publicationName = '';
     public string $publicationDescription = '';
 
+    // Publication appearance — powers AT Protocol link cards (icon, theme colours)
+    /** @var int[] Selected icon asset IDs (element select, limited to one) */
+    public array $publicationIcon = [];
+    public ?string $themeBackground = null;
+    public ?string $themeForeground = null;
+    public ?string $themeAccent = null;
+    public ?string $themeAccentForeground = null;
+    public bool $showInDiscover = true;
+
     // Sync options
     public bool $publishOnSave = true;
     public bool $crossPostToBluesky = false;
@@ -38,6 +47,8 @@ class SiteSettings extends Model
     {
         return [
             [['publicationName', 'publicationDescription'], 'string'],
+            [['themeBackground', 'themeForeground', 'themeAccent', 'themeAccentForeground'], 'string'],
+            [['showInDiscover'], 'boolean'],
             [['enabledSections'], 'each', 'rule' => ['string']],
         ];
     }

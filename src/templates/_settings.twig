@@ -62,6 +62,55 @@
     rows: 3,
 }) }}
 
+{# ── Link card appearance (icon + theme colours) ── #}
+{{ forms.elementSelectField({
+    label: 'Publication Icon'|t('standard-site'),
+    instructions: 'A square image (at least 256×256) shown on AT Protocol link cards. It is uploaded to your PDS when you create or update the publication record, so the asset must exist in this environment.'|t('standard-site'),
+    id: 'publicationIcon-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][publicationIcon]',
+    elementType: 'craft\\elements\\Asset',
+    limit: 1,
+    criteria: { kind: ['image'] },
+    elements: currentSiteSettings.publicationIcon ? craft.assets.id(currentSiteSettings.publicationIcon).site(selectedSite.handle).all() : [],
+}) }}
+
+<p class="light" style="margin: -10px 0 14px;">{{ 'Theme colours are adopted by link cards. All four must be set for the theme to be sent.'|t('standard-site') }}</p>
+
+<div class="flex">
+    {{ forms.colorField({
+        label: 'Background'|t('standard-site'),
+        id: 'themeBackground-' ~ selectedSiteUid,
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][themeBackground]',
+        value: currentSiteSettings.themeBackground,
+    }) }}
+    {{ forms.colorField({
+        label: 'Foreground'|t('standard-site'),
+        id: 'themeForeground-' ~ selectedSiteUid,
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][themeForeground]',
+        value: currentSiteSettings.themeForeground,
+    }) }}
+    {{ forms.colorField({
+        label: 'Accent'|t('standard-site'),
+        id: 'themeAccent-' ~ selectedSiteUid,
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][themeAccent]',
+        value: currentSiteSettings.themeAccent,
+    }) }}
+    {{ forms.colorField({
+        label: 'Accent foreground'|t('standard-site'),
+        id: 'themeAccentForeground-' ~ selectedSiteUid,
+        name: 'siteSettings[' ~ selectedSiteUid ~ '][themeAccentForeground]',
+        value: currentSiteSettings.themeAccentForeground,
+    }) }}
+</div>
+
+{{ forms.lightswitchField({
+    label: 'Show in discovery feeds'|t('standard-site'),
+    instructions: 'Allow this publication to appear in AT Protocol discovery feeds.'|t('standard-site'),
+    id: 'showInDiscover-' ~ selectedSiteUid,
+    name: 'siteSettings[' ~ selectedSiteUid ~ '][showInDiscover]',
+    on: currentSiteSettings.showInDiscover,
+}) }}
+
 <hr>
 
 {# ── Sync Settings (Per-site) ── #}

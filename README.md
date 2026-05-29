@@ -67,9 +67,10 @@ These are configured in **Settings > Plugins > Standard.site** and deploy with y
 
 1. **AT Protocol Handle** — Your handle for each site (e.g. `yourname.bsky.social` or your custom domain)
 2. **Publication Name & Description** — How your publication appears on AT Protocol
-3. **Enabled Sections** — Which sections should be synced
-4. **Field Mappings** — Per section, which field to use for content and cover image (or auto-detect)
-5. **Publish on Save** — Toggle automatic syncing when entries are saved
+3. **Publication Icon & Theme** — A square icon and four brand colours used to render rich link cards (see [Link cards](#link-cards))
+4. **Enabled Sections** — Which sections should be synced
+5. **Field Mappings** — Per section, which field to use for content and cover image (or auto-detect)
+6. **Publish on Save** — Toggle automatic syncing when entries are saved
 
 ### CP Section Page (production)
 
@@ -103,6 +104,18 @@ Each entry in an enabled section shows a **Standard.site** widget in the sidebar
 ## Well-known endpoint
 
 The plugin registers a `/.well-known/site.standard.publication` route that returns the publication AT-URI for the current site. This is a dynamic route — no file is written to disk.
+
+## Link cards
+
+These are standard.site fields, not anything Bluesky-specific. Any AT Protocol reader that understands the standard.site lexicons — [Bluesky](https://bsky.app), [Frontpage](https://frontpage.fyi), and future apps — can render your content as a rich link card that reflects your publication's identity (icon, brand colours, name and link) instead of a generic web preview. They live on your `site.standard.publication` record, so set them in plugin settings:
+
+- **Publication Icon** — a square image (at least 256×256). It's uploaded to your PDS as a blob when you create or update the publication record, so the chosen asset must exist in that environment.
+- **Theme colours** — `Background`, `Foreground`, `Accent` and `Accent foreground`. All four must be set for the theme to be sent; otherwise it's omitted. They're stored as hex and converted to the `site.standard.theme.basic` RGB format.
+- **Show in discovery feeds** — toggles `preferences.showInDiscover`, opting the publication into AT Protocol discovery feeds.
+
+After changing any of these, click **Update Publication Record** on the Standard.site CP page to push the new publication record (per environment).
+
+The author and any subscription prompts a reader may show on cards come from the connected AT Protocol identity itself (the repo DID's profile), not from per-entry fields.
 
 ## Console commands
 
