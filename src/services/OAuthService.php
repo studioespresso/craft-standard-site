@@ -32,7 +32,7 @@ class OAuthService extends Component
     /**
      * Initiate OAuth flow. Returns the authorization URL to redirect the user to.
      */
-    public function authorize(string $handle, ?string $siteHandle = null): string
+    public function authorize(string $handle, ?string $siteHandle = null, ?string $siteUid = null): string
     {
         $plugin = StandardSite::getInstance();
 
@@ -59,6 +59,7 @@ class OAuthService extends Component
             'codeVerifier' => $codeVerifier,
             'dpopKey' => $dpopKey,
             'siteHandle' => $siteHandle,
+            'siteUid' => $siteUid,
         ];
         $cache->set(self::CACHE_PREFIX . $state, $cacheData, self::CACHE_TTL);
 
@@ -311,7 +312,10 @@ class OAuthService extends Component
 
     private function storeConnection(array $cacheData, array $dpopKey, array $tokens): void
     {
+        $siteUid = $cacheData['siteUid'] ?? Craft::$app->getSites()->getPrimarySite()->uid;
+
         StandardSite::getInstance()->connection->saveConnection(
+            $siteUid,
             $cacheData['handle'],
             $cacheData['did'],
             $cacheData['pdsUrl'],

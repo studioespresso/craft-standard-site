@@ -23,8 +23,11 @@ class PublisherService extends Component
         }
         $siteSettings = $settings->getSiteSettings($site->uid);
 
-        if (!$plugin->connection->isConnected()) {
-            throw new \RuntimeException('Not connected to AT Protocol. Connect via the Standard.site CP page first.');
+        // All downstream API/OAuth calls operate on this site's connection.
+        $plugin->connection->setActiveSiteUid($site->uid);
+
+        if (!$plugin->connection->isConnected($site->uid)) {
+            throw new \RuntimeException('Not connected to AT Protocol for site "' . $site->handle . '". Connect via the Standard.site CP page first.');
         }
 
         $publicationAtUri = PublicationRecord::getAtUri($site->uid);
@@ -58,7 +61,7 @@ class PublisherService extends Component
             $dbRecord->siteId = $entry->siteId;
             $dbRecord->collection = $collection;
             $dbRecord->rkey = $rkey;
-            $dbRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid()}/{$collection}/{$rkey}";
+            $dbRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid($site->uid)}/{$collection}/{$rkey}";
             $dbRecord->cid = $result['cid'] ?? null;
             $dbRecord->save();
 
@@ -70,7 +73,12 @@ class PublisherService extends Component
     {
         $plugin = StandardSite::getInstance();
 
-        if (!$plugin->connection->isConnected()) {
+        $site = Craft::$app->getSites()->getSiteById($entry->siteId);
+        if ($site) {
+            $plugin->connection->setActiveSiteUid($site->uid);
+        }
+
+        if (!$plugin->connection->isConnected($site?->uid)) {
             return;
         }
 

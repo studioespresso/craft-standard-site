@@ -2,83 +2,116 @@
 
 namespace studioespresso\standardsite\services;
 
+use Craft;
 use studioespresso\standardsite\records\ConnectionRecord;
 use studioespresso\standardsite\StandardSite;
 use yii\base\Component;
 
 /**
- * Manages the AT Protocol connection data in the database (not project config).
- * This allows OAuth tokens to be stored per-environment and written
- * even when allowAdminChanges is false.
+ * Manages AT Protocol connection data in the database (not project config).
+ *
+ * Connections are stored per Craft site (keyed by site UID), so each site can
+ * authenticate with its own AT Protocol identity. Storing tokens in the DB also
+ * means they can be written per-environment even when allowAdminChanges is false.
+ *
+ * Most methods take an optional $siteUid. When omitted they fall back to the
+ * "active" site (set via {@see setActiveSiteUid()} at the start of a publish /
+ * settings operation) and finally to the current request site. This lets the
+ * lower-level API/OAuth services read "the current connection" without every
+ * call having to thread the site through.
  */
 class ConnectionService extends Component
 {
-    private ?ConnectionRecord $_connection = null;
-    private bool $_fetched = false;
+    /** @var array<string, ConnectionRecord|null> Connection records keyed by site UID */
+    private array $_connections = [];
+
+    private ?string $_activeSiteUid = null;
 
     /**
-     * Get the current connection record, or null if not connected.
+     * Set the site whose connection the lower-level services (API, OAuth) should
+     * operate on for the duration of the current operation.
      */
-    public function getConnection(): ?ConnectionRecord
+    public function setActiveSiteUid(?string $siteUid): void
     {
-        if (!$this->_fetched) {
-            /** @var ConnectionRecord|null $connection */
-            $connection = ConnectionRecord::find()->one();
-            $this->_connection = $connection;
-            $this->_fetched = true;
-        }
-        return $this->_connection;
+        $this->_activeSiteUid = $siteUid;
     }
 
     /**
-     * Check if we have an active connection.
+     * Resolve a usable site UID: explicit > active > current request site.
      */
-    public function isConnected(): bool
+    private function resolveSiteUid(?string $siteUid): string
     {
-        $connection = $this->getConnection();
+        return $siteUid
+            ?? $this->_activeSiteUid
+            ?? Craft::$app->getSites()->getCurrentSite()->uid;
+    }
+
+    /**
+     * Get the connection record for a site, or null if that site isn't connected.
+     */
+    public function getConnection(?string $siteUid = null): ?ConnectionRecord
+    {
+        $siteUid = $this->resolveSiteUid($siteUid);
+
+        if (!array_key_exists($siteUid, $this->_connections)) {
+            /** @var ConnectionRecord|null $connection */
+            $connection = ConnectionRecord::find()->where(['siteUid' => $siteUid])->one();
+            $this->_connections[$siteUid] = $connection;
+        }
+
+        return $this->_connections[$siteUid];
+    }
+
+    /**
+     * Check if a site has an active connection.
+     */
+    public function isConnected(?string $siteUid = null): bool
+    {
+        $connection = $this->getConnection($siteUid);
         return $connection !== null && !empty($connection->did) && !empty($connection->accessToken);
     }
 
     /**
-     * Get the DID from the connection.
+     * Get the DID from a site's connection.
      */
-    public function getDid(): ?string
+    public function getDid(?string $siteUid = null): ?string
     {
-        return $this->getConnection()?->did;
+        return $this->getConnection($siteUid)?->did;
     }
 
     /**
-     * Get the PDS URL from the connection.
+     * Get the PDS URL from a site's connection.
      */
-    public function getPdsUrl(): ?string
+    public function getPdsUrl(?string $siteUid = null): ?string
     {
-        return $this->getConnection()?->pdsUrl;
+        return $this->getConnection($siteUid)?->pdsUrl;
     }
 
     /**
-     * Get the handle from the connection.
+     * Get the AT Protocol handle from a site's connection.
      */
-    public function getHandle(): ?string
+    public function getHandle(?string $siteUid = null): ?string
     {
-        return $this->getConnection()?->handle;
+        return $this->getConnection($siteUid)?->handle;
     }
 
     /**
      * Get the Craft site handle used during OAuth (for correct client_id on refresh).
      */
-    public function getSiteHandle(): ?string
+    public function getSiteHandle(?string $siteUid = null): ?string
     {
-        return $this->getConnection()?->siteHandle;
+        return $this->getConnection($siteUid)?->siteHandle;
     }
 
     /**
-     * Store a new connection after successful OAuth.
+     * Store a new connection for a site after successful OAuth.
      */
-    public function saveConnection(string $handle, string $did, string $pdsUrl, array $tokens, array $dpopKey, ?string $siteHandle = null): void
+    public function saveConnection(string $siteUid, string $handle, string $did, string $pdsUrl, array $tokens, array $dpopKey, ?string $siteHandle = null): void
     {
         $encryption = StandardSite::getInstance()->encryption;
 
-        $record = $this->getConnection() ?? new ConnectionRecord();
+        $record = $this->getConnection($siteUid) ?? new ConnectionRecord();
+        $record->siteUid = $siteUid;
         $record->handle = $handle;
         $record->siteHandle = $siteHandle;
         $record->did = $did;
@@ -89,17 +122,16 @@ class ConnectionService extends Component
         $record->tokenExpiresAt = time() + ($tokens['expires_in'] ?? 3600);
         $record->save();
 
-        // Reset cache
-        $this->_connection = $record;
-        $this->_fetched = true;
+        // Refresh cache
+        $this->_connections[$siteUid] = $record;
     }
 
     /**
      * Update tokens after a refresh.
      */
-    public function updateTokens(array $tokens): void
+    public function updateTokens(array $tokens, ?string $siteUid = null): void
     {
-        $connection = $this->getConnection();
+        $connection = $this->getConnection($siteUid);
         if (!$connection) {
             throw new \RuntimeException('No connection to update');
         }
@@ -112,11 +144,11 @@ class ConnectionService extends Component
     }
 
     /**
-     * Get a valid decrypted access token.
+     * Get a valid decrypted access token for a site.
      */
-    public function getAccessToken(): ?string
+    public function getAccessToken(?string $siteUid = null): ?string
     {
-        $connection = $this->getConnection();
+        $connection = $this->getConnection($siteUid);
         if (!$connection?->accessToken) {
             return null;
         }
@@ -124,11 +156,11 @@ class ConnectionService extends Component
     }
 
     /**
-     * Get the decrypted DPoP key.
+     * Get the decrypted DPoP key for a site.
      */
-    public function getDpopKey(): ?array
+    public function getDpopKey(?string $siteUid = null): ?array
     {
-        $connection = $this->getConnection();
+        $connection = $this->getConnection($siteUid);
         if (!$connection?->dpopKey) {
             return null;
         }
@@ -137,11 +169,11 @@ class ConnectionService extends Component
     }
 
     /**
-     * Get the decrypted refresh token.
+     * Get the decrypted refresh token for a site.
      */
-    public function getRefreshToken(): ?string
+    public function getRefreshToken(?string $siteUid = null): ?string
     {
-        $connection = $this->getConnection();
+        $connection = $this->getConnection($siteUid);
         if (!$connection?->refreshToken) {
             return null;
         }
@@ -149,23 +181,24 @@ class ConnectionService extends Component
     }
 
     /**
-     * Get token expiry timestamp.
+     * Get token expiry timestamp for a site.
      */
-    public function getTokenExpiresAt(): ?int
+    public function getTokenExpiresAt(?string $siteUid = null): ?int
     {
-        return $this->getConnection()?->tokenExpiresAt;
+        return $this->getConnection($siteUid)?->tokenExpiresAt;
     }
 
     /**
-     * Delete the connection (disconnect).
+     * Delete a site's connection (disconnect).
      */
-    public function deleteConnection(): void
+    public function deleteConnection(?string $siteUid = null): void
     {
-        $connection = $this->getConnection();
+        $siteUid = $this->resolveSiteUid($siteUid);
+
+        $connection = $this->getConnection($siteUid);
         if ($connection) {
             $connection->delete();
         }
-        $this->_connection = null;
-        $this->_fetched = false;
+        unset($this->_connections[$siteUid]);
     }
 }

@@ -42,7 +42,7 @@ use yii\base\Event;
  */
 class StandardSite extends Plugin
 {
-    public string $schemaVersion = '1.2.0';
+    public string $schemaVersion = '1.3.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 
@@ -111,7 +111,7 @@ class StandardSite extends Plugin
                 $siteSettings = $settings->getSiteSettings($site->uid);
 
                 // Must be connected and have publish-on-save enabled for this site
-                if (!$this->connection->isConnected() || !$siteSettings->publishOnSave) {
+                if (!$this->connection->isConnected($site->uid) || !$siteSettings->publishOnSave) {
                     return;
                 }
 
@@ -149,7 +149,8 @@ class StandardSite extends Plugin
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
-                if ($this->connection->isConnected() && $this->publisher->isPublished($entry->id, $entry->siteId)) {
+                $site = Craft::$app->getSites()->getSiteById($entry->siteId);
+                if ($site && $this->connection->isConnected($site->uid) && $this->publisher->isPublished($entry->id, $entry->siteId)) {
                     $this->publisher->unpublishEntry($entry);
                 }
             }
@@ -179,7 +180,7 @@ class StandardSite extends Plugin
                 }
 
                 try {
-                    $isConnected = $this->connection->isConnected();
+                    $isConnected = $this->connection->isConnected($site->uid);
                     $isPublished = $isConnected && $this->publisher->isPublished($entry->id, $entry->siteId);
                     $atUri = $isPublished ? $this->publisher->getDocumentUri($entry->id, $entry->siteId) : null;
 

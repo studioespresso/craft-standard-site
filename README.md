@@ -82,9 +82,9 @@ The typical workflow is: configure everything in development via plugin settings
 
 ## Multi-site
 
-All settings are per-site. Each site can have its own AT Protocol handle, publication record, enabled sections, and field mappings. Use the site switcher in the breadcrumbs (CP section page) or the site selector buttons (settings page) to switch between sites.
+Everything is per-site. Each site can connect to its own AT Protocol identity and has its own publication record, enabled sections, and field mappings. Use the site switcher in the breadcrumbs (CP section page) or the site selector buttons (settings page) to switch between sites.
 
-The OAuth connection is shared across sites (one AT Protocol identity per installation).
+Connecting one site does not affect the others — the OAuth connection (handle, DID, PDS, tokens) is stored per-site, so you connect, disconnect, and publish each site independently.
 
 ## Publishing entries
 

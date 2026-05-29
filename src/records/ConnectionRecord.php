@@ -6,6 +6,7 @@ use craft\db\ActiveRecord;
 
 /**
  * @property int $id
+ * @property string|null $siteUid
  * @property string $handle
  * @property string|null $siteHandle
  * @property string $did

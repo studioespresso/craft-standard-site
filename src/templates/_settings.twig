@@ -3,8 +3,6 @@
 
 {% import '_includes/forms.twig' as forms %}
 
-{% set isConnected = craft.app.plugins.getPlugin('standard-site').connection.isConnected() %}
-
 {# ── Site Selector ── #}
 {% set allSites = craft.app.sites.allSites %}
 {% set selectedSiteHandle = craft.app.request.getQueryParam('site') ?? allSites|first.handle %}

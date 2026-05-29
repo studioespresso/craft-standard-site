@@ -26,8 +26,9 @@ class BackfillController extends Controller
         }
 
         // Check connection
-        if (!$plugin->connection->isConnected()) {
-            $this->stderr("Not connected to AT Protocol. Connect first via the CP.\n", Console::FG_RED);
+        $plugin->connection->setActiveSiteUid($site->uid);
+        if (!$plugin->connection->isConnected($site->uid)) {
+            $this->stderr("Not connected to AT Protocol for site \"{$siteHandle}\". Connect first via the CP.\n", Console::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
 

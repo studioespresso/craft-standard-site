@@ -26,6 +26,7 @@ class SettingsController extends Controller
 
         $request = Craft::$app->getRequest();
         $siteUid = $request->getRequiredBodyParam('siteUid');
+        $plugin->connection->setActiveSiteUid($siteUid);
         $publicationName = $request->getBodyParam('publicationName', '');
         $publicationDescription = $request->getBodyParam('publicationDescription', '');
 
@@ -67,7 +68,7 @@ class SettingsController extends Controller
                 $pubRecord = new PublicationRecord();
                 $pubRecord->siteUid = $siteUid;
                 $pubRecord->rkey = $rkey;
-                $pubRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid()}/{$transformer->getCollection()}/{$rkey}";
+                $pubRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid($siteUid)}/{$transformer->getCollection()}/{$rkey}";
                 $pubRecord->cid = $result['cid'] ?? null;
                 $pubRecord->save();
             }

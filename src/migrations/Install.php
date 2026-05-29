@@ -31,6 +31,7 @@ class Install extends Migration
         if (!$this->db->tableExists('{{%standardsite_connections}}')) {
             $this->createTable('{{%standardsite_connections}}', [
                 'id' => $this->primaryKey(),
+                'siteUid' => $this->string(36)->null(),
                 'handle' => $this->string(255)->notNull(),
                 'siteHandle' => $this->string(255)->null(),
                 'did' => $this->string(255)->notNull(),

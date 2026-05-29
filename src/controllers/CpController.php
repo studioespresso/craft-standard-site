@@ -29,8 +29,9 @@ class CpController extends Controller
     public function actionIndex(): Response
     {
         $plugin = StandardSite::getInstance();
-        $connection = $plugin->connection->getConnection();
-        $isConnected = $plugin->connection->isConnected();
+        $plugin->connection->setActiveSiteUid($this->site->uid);
+        $connection = $plugin->connection->getConnection($this->site->uid);
+        $isConnected = $plugin->connection->isConnected($this->site->uid);
 
         $sites = Craft::$app->getSites()->getEditableSites();
         $settings = $plugin->getSettings();
@@ -78,7 +79,7 @@ class CpController extends Controller
         $siteHandle = $site->handle;
 
         try {
-            $authUrl = StandardSite::getInstance()->oauth->authorize($siteSettings->handle, $siteHandle);
+            $authUrl = StandardSite::getInstance()->oauth->authorize($siteSettings->handle, $siteHandle, $siteUid);
             return $this->asJson(['success' => true, 'authUrl' => $authUrl]);
         } catch (\Throwable $e) {
             Craft::error("standard-site connect error: {$e->getMessage()}", __METHOD__);
@@ -91,7 +92,8 @@ class CpController extends Controller
         $this->requirePostRequest();
         $this->requireAcceptsJson();
 
-        StandardSite::getInstance()->connection->deleteConnection();
+        $siteUid = Craft::$app->getRequest()->getRequiredBodyParam('siteUid');
+        StandardSite::getInstance()->connection->deleteConnection($siteUid);
 
         return $this->asJson(['success' => true]);
     }
