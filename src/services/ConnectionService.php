@@ -27,6 +27,8 @@ class ConnectionService extends Component
 
     private ?string $_activeSiteUid = null;
 
+    private ?bool $_schemaReady = null;
+
     /**
      * Set the site whose connection the lower-level services (API, OAuth) should
      * operate on for the duration of the current operation.
@@ -51,6 +53,14 @@ class ConnectionService extends Component
      */
     public function getConnection(?string $siteUid = null): ?ConnectionRecord
     {
+        // During an upgrade the entry-save event can fire (e.g. a core migration
+        // re-saves a section) before this plugin's own migration has added the
+        // per-site siteUid column. Degrade gracefully instead of querying a
+        // column that doesn't exist yet.
+        if (!$this->schemaReady()) {
+            return null;
+        }
+
         $siteUid = $this->resolveSiteUid($siteUid);
 
         if (!array_key_exists($siteUid, $this->_connections)) {
@@ -60,6 +70,18 @@ class ConnectionService extends Component
         }
 
         return $this->_connections[$siteUid];
+    }
+
+    /**
+     * Whether the connections table has the per-site siteUid column yet. Cached
+     * per request; the column is missing only mid-upgrade before m260529 runs.
+     */
+    private function schemaReady(): bool
+    {
+        if ($this->_schemaReady === null) {
+            $this->_schemaReady = Craft::$app->getDb()->columnExists('{{%standardsite_connections}}', 'siteUid');
+        }
+        return $this->_schemaReady;
     }
 
     /**
