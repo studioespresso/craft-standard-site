@@ -101,6 +101,7 @@ class PublicationTransformer
         }
 
         return [
+            '$type' => 'site.standard.theme.basic',
             'background' => $background,
             'foreground' => $foreground,
             'accent' => $accent,
@@ -109,7 +110,8 @@ class PublicationTransformer
     }
 
     /**
-     * Convert a "#rrggbb" hex string to an {r, g, b} object of integers.
+     * Convert a "#rrggbb" hex string to a site.standard.theme.color#rgb object.
+     * The colour field is a union, so the $type discriminator is required.
      */
     private function hexToRgb(?string $hex): ?array
     {
@@ -123,6 +125,7 @@ class PublicationTransformer
         }
 
         return [
+            '$type' => 'site.standard.theme.color#rgb',
             'r' => hexdec(substr($hex, 0, 2)),
             'g' => hexdec(substr($hex, 2, 2)),
             'b' => hexdec(substr($hex, 4, 2)),

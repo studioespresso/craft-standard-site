@@ -4,6 +4,9 @@
 ### Added
 - Added publication icon, theme colours (`basicTheme`) and discovery preference (`preferences.showInDiscover`) to the `site.standard.publication` record, so standard.site-aware readers (Bluesky, Frontpage, etc.) can render content as rich link cards. Configure them per-site in plugin settings.
 
+### Fixed
+- The theme `basicTheme` object now includes the required `$type` discriminators (`site.standard.theme.basic` and `site.standard.theme.color#rgb`). Without them the theme union was malformed and rich-card renderers ignored it.
+
 ## 1.0.1 - 2026-05-29
 ### Fixed
 - Fixed multi-site connections: each Craft site now stores and uses its own AT Protocol connection instead of sharing a single one. Connecting, disconnecting and publishing are now fully per-site.
