@@ -9,8 +9,10 @@ use craft\elements\Entry;
 use craft\events\DefineHtmlEvent;
 use craft\events\ModelEvent;
 use craft\events\RegisterUrlRulesEvent;
+use craft\helpers\Html;
 use craft\web\twig\variables\CraftVariable;
 use craft\web\UrlManager;
+use craft\web\View;
 use studioespresso\standardsite\jobs\PublishEntryJob;
 use studioespresso\standardsite\models\Settings;
 use studioespresso\standardsite\records\PublicationRecord;
@@ -68,6 +70,7 @@ class StandardSite extends Plugin
         $this->registerUrlRules();
         $this->registerEventHandlers();
         $this->registerTwigVariable();
+        $this->registerDocumentDiscoveryTag();
     }
 
     public function getCpNavItem(): ?array
@@ -193,6 +196,41 @@ class StandardSite extends Plugin
                 } catch (\Throwable $e) {
                     Craft::error("[standard-site] Failed to render entry sidebar: {$e->getMessage()}", __METHOD__);
                 }
+            }
+        );
+    }
+
+    /**
+     * Inject a <link rel="site.standard.document" href="at://…"> tag into the
+     * <head> of published entry pages. This is how AT Protocol readers (e.g.
+     * Bluesky's card service) discover the document record for a URL and render
+     * a rich link card — the .well-known endpoint alone isn't enough.
+     */
+    private function registerDocumentDiscoveryTag(): void
+    {
+        $request = Craft::$app->getRequest();
+        if ($request->getIsConsoleRequest() || !$request->getIsSiteRequest()) {
+            return;
+        }
+
+        Event::on(
+            View::class,
+            View::EVENT_BEFORE_RENDER_PAGE_TEMPLATE,
+            function() {
+                $element = Craft::$app->getUrlManager()->getMatchedElement();
+                if (!$element instanceof Entry) {
+                    return;
+                }
+
+                $uri = $this->publisher->getDocumentUri($element->id, $element->siteId);
+                if (!$uri) {
+                    return;
+                }
+
+                Craft::$app->getView()->registerHtml(
+                    Html::tag('link', '', ['rel' => 'site.standard.document', 'href' => $uri]),
+                    View::POS_HEAD,
+                );
             }
         );
     }

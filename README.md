@@ -117,6 +117,23 @@ After changing any of these, click **Update Publication Record** on the Standard
 
 The author and any subscription prompts a reader may show on cards come from the connected AT Protocol identity itself (the repo DID's profile), not from per-entry fields.
 
+### Document discovery tag
+
+For a reader to map a shared article URL to its AT Protocol record, the entry's page must advertise it in the `<head>`:
+
+```html
+<link rel="site.standard.document" href="at://did:.../site.standard.document/...">
+```
+
+The plugin injects this automatically into published entry pages (front-end site requests), so no template changes are needed. If your `<head>` is rendered in a way that bypasses Craft's automatic head injection (e.g. a headless setup), output it manually:
+
+```twig
+{{ craft.standardSite.documentTag() }}        {# current entry #}
+{{ craft.standardSite.documentTag(entry) }}   {# explicit entry #}
+```
+
+Without this tag, readers fall back to a generic web preview even when your records are correct.
+
 ## Console commands
 
 ### Backfill
