@@ -44,7 +44,7 @@ use yii\base\Event;
  */
 class StandardSite extends Plugin
 {
-    public string $schemaVersion = '1.3.0';
+    public string $schemaVersion = '1.4.0';
     public bool $hasCpSettings = true;
     public bool $hasCpSection = true;
 

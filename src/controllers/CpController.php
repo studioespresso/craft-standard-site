@@ -4,10 +4,14 @@ namespace studioespresso\standardsite\controllers;
 
 use Craft;
 use craft\helpers\Cp;
+use craft\helpers\UrlHelper;
 use craft\models\Site;
 use craft\web\Controller;
+use studioespresso\standardsite\helpers\Tid;
 use studioespresso\standardsite\records\PublicationRecord;
+use studioespresso\standardsite\records\PublicationSettingsRecord;
 use studioespresso\standardsite\StandardSite;
+use studioespresso\standardsite\transformers\PublicationTransformer;
 use yii\web\Response;
 
 class CpController extends Controller
@@ -58,7 +62,85 @@ class CpController extends Controller
                 'selectedSite' => $this->site,
                 'currentSiteSettings' => $currentSiteSettings,
                 'publicationRecord' => PublicationRecord::findBySiteUid($this->site->uid),
+                'publicationSettings' => PublicationSettingsRecord::forSite($this->site->uid),
             ]);
+    }
+
+    /**
+     * Save the per-site publication settings to the database and, if connected,
+     * push the publication record to the PDS. Stored in the DB (not project
+     * config) so it works on production and references the icon asset by an ID
+     * local to this environment.
+     */
+    public function actionSavePublication(): Response
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $siteUid = $request->getRequiredBodyParam('siteUid');
+        $plugin = StandardSite::getInstance();
+        $plugin->connection->setActiveSiteUid($siteUid);
+
+        $site = Craft::$app->getSites()->getSiteByUid($siteUid);
+        if (!$site) {
+            Craft::$app->getSession()->setError('Site not found.');
+            return $this->redirectToCp($siteUid);
+        }
+
+        // Save the settings to the database.
+        $icon = $request->getBodyParam('iconAssetId');
+        $config = PublicationSettingsRecord::forSite($siteUid);
+        $config->name = $request->getBodyParam('name') ?: null;
+        $config->description = $request->getBodyParam('description') ?: null;
+        $config->iconAssetId = is_array($icon) ? ((int)($icon[0] ?? 0) ?: null) : ((int)$icon ?: null);
+        $config->themeBackground = $request->getBodyParam('themeBackground') ?: null;
+        $config->themeForeground = $request->getBodyParam('themeForeground') ?: null;
+        $config->themeAccent = $request->getBodyParam('themeAccent') ?: null;
+        $config->themeAccentForeground = $request->getBodyParam('themeAccentForeground') ?: null;
+        $config->showInDiscover = (bool)$request->getBodyParam('showInDiscover', true);
+        $config->save();
+
+        // Without a connection we can only store the settings.
+        if (!$plugin->connection->isConnected($siteUid)) {
+            Craft::$app->getSession()->setNotice('Publication details saved. Connect to AT Protocol to publish the record.');
+            return $this->redirectToCp($siteUid);
+        }
+
+        // Push (create or update) the publication record on the PDS.
+        $transformer = new PublicationTransformer();
+        $record = $transformer->transformForSite($site, $config);
+        $pubRecord = PublicationRecord::findBySiteUid($siteUid);
+
+        try {
+            if ($pubRecord) {
+                $result = $plugin->api->putRecord($transformer->getCollection(), $pubRecord->rkey, $record);
+                $pubRecord->atUri = $result['uri'] ?? $pubRecord->atUri;
+                $pubRecord->cid = $result['cid'] ?? null;
+                $pubRecord->save();
+            } else {
+                $rkey = Tid::generate();
+                $result = $plugin->api->createRecord($transformer->getCollection(), $record, $rkey);
+                $pubRecord = new PublicationRecord();
+                $pubRecord->siteUid = $siteUid;
+                $pubRecord->rkey = $rkey;
+                $pubRecord->atUri = $result['uri'] ?? "at://{$plugin->connection->getDid($siteUid)}/{$transformer->getCollection()}/{$rkey}";
+                $pubRecord->cid = $result['cid'] ?? null;
+                $pubRecord->save();
+            }
+
+            Craft::$app->getSession()->setNotice('Publication record saved and published.');
+        } catch (\Throwable $e) {
+            Craft::error("standard-site publication push failed: {$e->getMessage()}", __METHOD__);
+            Craft::$app->getSession()->setError("Saved, but publishing failed: {$e->getMessage()}");
+        }
+
+        return $this->redirectToCp($siteUid);
+    }
+
+    private function redirectToCp(string $siteUid): Response
+    {
+        $site = Craft::$app->getSites()->getSiteByUid($siteUid);
+        return $this->redirect(UrlHelper::cpUrl('standard-site', $site ? ['site' => $site->handle] : []));
     }
 
     public function actionConnect(): Response

@@ -1,3 +1,5 @@
+{% import '_includes/forms.twig' as forms %}
+
 <h2>{{ 'AT Protocol Connection'|t('standard-site') }}</h2>
 
 {% if isConnected %}
@@ -9,24 +11,6 @@
     </div>
 
     <a href="#" class="btn" id="standard-site-disconnect" data-site-uid="{{ selectedSite.uid }}">{{ 'Disconnect'|t('standard-site') }}</a>
-
-    <hr>
-
-    <h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
-
-    {% if publicationRecord %}
-        <div class="pane" style="margin-bottom: 14px;">
-            <p><strong>{{ 'Publication Record'|t('standard-site') }}</strong></p>
-            <p>{{ 'AT-URI'|t('standard-site') }}: <code>{{ publicationRecord.atUri }}</code></p>
-            <p><a href="https://pdsls.dev/at/{{ publicationRecord.atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener">{{ 'View on pdsls.dev'|t('standard-site') }} &rarr;</a></p>
-        </div>
-
-        <a href="#" class="btn" id="standard-site-save-publication" data-site-uid="{{ selectedSite.uid }}">{{ 'Update Publication Record'|t('standard-site') }}</a>
-    {% else %}
-        <p class="light" style="margin-bottom: 14px;">{{ 'No publication record for this site yet. Create one to start publishing entries.'|t('standard-site') }}</p>
-        <a href="#" class="btn submit" id="standard-site-save-publication" data-site-uid="{{ selectedSite.uid }}">{{ 'Create Publication Record'|t('standard-site') }}</a>
-    {% endif %}
-
 {% else %}
     {% if currentSiteSettings.handle %}
         <div class="pane" style="margin-bottom: 14px;">
@@ -42,11 +26,95 @@
     {% endif %}
 {% endif %}
 
+<hr>
+
+<h2>{{ 'Publication'|t('standard-site') }} — {{ selectedSite.name }}</h2>
+
+{% if publicationRecord %}
+    <div class="pane" style="margin-bottom: 14px;">
+        <p><strong>{{ 'Published'|t('standard-site') }}</strong></p>
+        <p>{{ 'AT-URI'|t('standard-site') }}: <code>{{ publicationRecord.atUri }}</code></p>
+        <p><a href="https://pdsls.dev/at/{{ publicationRecord.atUri|replace({'at://': ''}) }}" target="_blank" rel="noopener">{{ 'View on pdsls.dev'|t('standard-site') }} &rarr;</a></p>
+    </div>
+{% endif %}
+
+<form method="post" accept-charset="UTF-8">
+    {{ csrfInput() }}
+    {{ actionInput('standard-site/cp/save-publication') }}
+    {{ hiddenInput('siteUid', selectedSite.uid) }}
+
+    {{ forms.textField({
+        label: 'Publication Name'|t('standard-site'),
+        instructions: 'How your publication appears on AT Protocol. Defaults to the site name.'|t('standard-site'),
+        name: 'name',
+        value: publicationSettings.name,
+        placeholder: selectedSite.name,
+    }) }}
+
+    {{ forms.textareaField({
+        label: 'Publication Description'|t('standard-site'),
+        instructions: 'A short description of your publication.'|t('standard-site'),
+        name: 'description',
+        value: publicationSettings.description,
+        rows: 3,
+    }) }}
+
+    {{ forms.elementSelectField({
+        label: 'Publication Icon'|t('standard-site'),
+        instructions: 'A square image (at least 256×256) shown on AT Protocol link cards. Uploaded to your PDS when you publish the record.'|t('standard-site'),
+        name: 'iconAssetId',
+        elementType: 'craft\\elements\\Asset',
+        limit: 1,
+        criteria: { kind: ['image'] },
+        elements: publicationSettings.iconAssetId ? craft.assets.id(publicationSettings.iconAssetId).status(null).all() : [],
+    }) }}
+
+    <p class="light" style="margin: -10px 0 14px;">{{ 'Theme colours are adopted by link cards. All four must be set for the theme to be sent.'|t('standard-site') }}</p>
+
+    <div class="flex">
+        {{ forms.colorField({
+            label: 'Background'|t('standard-site'),
+            name: 'themeBackground',
+            value: publicationSettings.themeBackground,
+        }) }}
+        {{ forms.colorField({
+            label: 'Foreground'|t('standard-site'),
+            name: 'themeForeground',
+            value: publicationSettings.themeForeground,
+        }) }}
+        {{ forms.colorField({
+            label: 'Accent'|t('standard-site'),
+            name: 'themeAccent',
+            value: publicationSettings.themeAccent,
+        }) }}
+        {{ forms.colorField({
+            label: 'Accent foreground'|t('standard-site'),
+            name: 'themeAccentForeground',
+            value: publicationSettings.themeAccentForeground,
+        }) }}
+    </div>
+
+    {{ forms.lightswitchField({
+        label: 'Show in discovery feeds'|t('standard-site'),
+        instructions: 'Allow this publication to appear in AT Protocol discovery feeds.'|t('standard-site'),
+        name: 'showInDiscover',
+        on: publicationSettings.showInDiscover,
+    }) }}
+
+    {% set buttonLabel = isConnected
+        ? (publicationRecord ? 'Save & update publication record'|t('standard-site') : 'Save & create publication record'|t('standard-site'))
+        : 'Save publication details'|t('standard-site') %}
+    <button type="submit" class="btn submit">{{ buttonLabel }}</button>
+
+    {% if not isConnected %}
+        <p class="light" style="margin-top: 10px;">{{ 'Connect to AT Protocol above to publish these details to your PDS.'|t('standard-site') }}</p>
+    {% endif %}
+</form>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var connectBtn = document.getElementById('standard-site-connect');
     var disconnectBtn = document.getElementById('standard-site-disconnect');
-    var pubBtn = document.getElementById('standard-site-save-publication');
 
     if (connectBtn) {
         connectBtn.addEventListener('click', async function(e) {
@@ -89,35 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 Craft.cp.displayError('Failed to disconnect.');
                 disconnectBtn.classList.remove('loading');
             }
-        });
-    }
-
-    if (pubBtn) {
-        pubBtn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            var siteUid = pubBtn.getAttribute('data-site-uid');
-            pubBtn.classList.add('loading');
-            pubBtn.style.pointerEvents = 'none';
-
-            try {
-                var response = await Craft.sendActionRequest('POST', 'standard-site/settings/save-publication', {
-                    data: {
-                        siteUid: siteUid,
-                        publicationName: '{{ currentSiteSettings.publicationName|e('js') }}',
-                        publicationDescription: '{{ currentSiteSettings.publicationDescription|e('js') }}'
-                    }
-                });
-                if (response.data.success) {
-                    Craft.cp.displayNotice('Publication record saved.');
-                    window.location.reload();
-                } else {
-                    Craft.cp.displayError(response.data.error || 'Failed to save publication.');
-                }
-            } catch (err) {
-                Craft.cp.displayError(err.response?.data?.error || 'Failed to save publication.');
-            }
-            pubBtn.classList.remove('loading');
-            pubBtn.style.pointerEvents = '';
         });
     }
 });

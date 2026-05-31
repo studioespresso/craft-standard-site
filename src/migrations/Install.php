@@ -60,6 +60,25 @@ class Install extends Migration
             $this->createIndex(null, '{{%standardsite_publications}}', ['siteUid'], true);
         }
 
+        if (!$this->db->tableExists('{{%standardsite_publicationsettings}}')) {
+            $this->createTable('{{%standardsite_publicationsettings}}', [
+                'id' => $this->primaryKey(),
+                'siteUid' => $this->string(36)->notNull(),
+                'name' => $this->string(1000)->null(),
+                'description' => $this->text()->null(),
+                'iconAssetId' => $this->integer()->null(),
+                'themeBackground' => $this->string(7)->null(),
+                'themeForeground' => $this->string(7)->null(),
+                'themeAccent' => $this->string(7)->null(),
+                'themeAccentForeground' => $this->string(7)->null(),
+                'showInDiscover' => $this->boolean()->defaultValue(true)->notNull(),
+                'dateCreated' => $this->dateTime()->notNull(),
+                'dateUpdated' => $this->dateTime()->notNull(),
+                'uid' => $this->uid(),
+            ]);
+            $this->createIndex(null, '{{%standardsite_publicationsettings}}', ['siteUid'], true);
+        }
+
         return true;
     }
 
@@ -68,6 +87,7 @@ class Install extends Migration
         $this->dropTableIfExists('{{%standardsite_records}}');
         $this->dropTableIfExists('{{%standardsite_connections}}');
         $this->dropTableIfExists('{{%standardsite_publications}}');
+        $this->dropTableIfExists('{{%standardsite_publicationsettings}}');
         return true;
     }
 }

@@ -5,61 +5,63 @@ namespace studioespresso\standardsite\transformers;
 use Craft;
 use craft\elements\Asset;
 use craft\models\Site;
-use studioespresso\standardsite\models\SiteSettings;
+use studioespresso\standardsite\records\PublicationSettingsRecord;
 use studioespresso\standardsite\StandardSite;
 
 class PublicationTransformer
 {
     /**
-     * Transform for a specific Craft site using its per-site settings.
+     * Build a site.standard.publication record for a Craft site from its
+     * (database-backed) publication settings.
      */
-    public function transformForSite(Site $site, SiteSettings $siteSettings): array
+    public function transformForSite(Site $site, PublicationSettingsRecord $config): array
     {
         $record = [
             '$type' => 'site.standard.publication',
             'url' => rtrim($site->getBaseUrl(), '/'),
-            'name' => $siteSettings->publicationName ?: $site->getName(),
+            'name' => $config->name ?: $site->getName(),
         ];
 
-        if ($siteSettings->publicationDescription) {
-            $record['description'] = $siteSettings->publicationDescription;
+        if ($config->description) {
+            $record['description'] = $config->description;
         }
 
         // Icon — a square image shown on AT Protocol link cards.
-        $icon = $this->uploadIcon($siteSettings, $site);
+        $icon = $this->uploadIcon($config);
         if ($icon) {
             $record['icon'] = $icon;
         }
 
         // Theme — brand colours adopted by link cards.
-        $theme = $this->buildTheme($siteSettings);
+        $theme = $this->buildTheme($config);
         if ($theme) {
             $record['basicTheme'] = $theme;
         }
 
         // Preferences — discovery feed visibility.
         $record['preferences'] = [
-            'showInDiscover' => $siteSettings->showInDiscover,
+            'showInDiscover' => (bool)$config->showInDiscover,
         ];
 
         return $record;
     }
 
     /**
-     * Resolve the configured icon asset and upload it as a blob.
-     * Runs in the environment where the publication record is created, so the
-     * asset must exist there.
+     * Resolve the configured icon asset and upload it as a blob. The asset ID is
+     * stored per-environment, so it resolves on whichever environment pushes the
+     * record.
      */
-    private function uploadIcon(SiteSettings $siteSettings, Site $site): ?array
+    private function uploadIcon(PublicationSettingsRecord $config): ?array
     {
-        $assetId = $siteSettings->publicationIcon[0] ?? null;
+        $assetId = $config->iconAssetId;
         if (!$assetId) {
             return null;
         }
 
         /** @var Asset|null $asset */
-        $asset = Asset::find()->id($assetId)->siteId($site->id)->kind('image')->one();
+        $asset = Asset::find()->id($assetId)->status(null)->one();
         if (!$asset) {
+            Craft::warning("[standard-site] Publication icon asset #{$assetId} not found.", __METHOD__);
             return null;
         }
 
@@ -89,12 +91,12 @@ class PublicationTransformer
      * Build a site.standard.theme.basic object from the configured colours.
      * Only emitted when all four colours are set, to avoid a partial theme.
      */
-    private function buildTheme(SiteSettings $siteSettings): ?array
+    private function buildTheme(PublicationSettingsRecord $config): ?array
     {
-        $background = $this->hexToRgb($siteSettings->themeBackground);
-        $foreground = $this->hexToRgb($siteSettings->themeForeground);
-        $accent = $this->hexToRgb($siteSettings->themeAccent);
-        $accentForeground = $this->hexToRgb($siteSettings->themeAccentForeground);
+        $background = $this->hexToRgb($config->themeBackground);
+        $foreground = $this->hexToRgb($config->themeForeground);
+        $accent = $this->hexToRgb($config->themeAccent);
+        $accentForeground = $this->hexToRgb($config->themeAccentForeground);
 
         if (!$background || !$foreground || !$accent || !$accentForeground) {
             return null;
@@ -130,18 +132,6 @@ class PublicationTransformer
             'g' => hexdec(substr($hex, 2, 2)),
             'b' => hexdec(substr($hex, 4, 2)),
         ];
-    }
-
-    /**
-     * Legacy: transform using global settings and primary site.
-     */
-    public function transform(): array
-    {
-        $settings = StandardSite::getInstance()->getSettings();
-        $site = Craft::$app->getSites()->getPrimarySite();
-        $siteSettings = $settings->getSiteSettings($site->uid);
-
-        return $this->transformForSite($site, $siteSettings);
     }
 
     public function getCollection(): string

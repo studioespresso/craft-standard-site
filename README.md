@@ -66,20 +66,19 @@ The plugin separates configuration into two parts: **plugin settings** (stored i
 These are configured in **Settings > Plugins > Standard.site** and deploy with your project config:
 
 1. **AT Protocol Handle** — Your handle for each site (e.g. `yourname.bsky.social` or your custom domain)
-2. **Publication Name & Description** — How your publication appears on AT Protocol
-3. **Publication Icon & Theme** — A square icon and four brand colours used to render rich link cards (see [Link cards](#link-cards))
-4. **Enabled Sections** — Which sections should be synced
-5. **Field Mappings** — Per section, which field to use for content and cover image (or auto-detect)
-6. **Publish on Save** — Toggle automatic syncing when entries are saved
+2. **Enabled Sections** — Which sections should be synced
+3. **Field Mappings** — Per section, which field to use for content and cover image (or auto-detect)
+4. **Publish on Save** — Toggle automatic syncing when entries are saved
 
 ### CP Section Page (production)
 
-These actions happen on the **Standard.site** page in the CP sidebar and work regardless of `allowAdminChanges`:
+These happen on the **Standard.site** page in the CP sidebar and work regardless of `allowAdminChanges` — they write to the database, not project config:
 
-1. **Connect to AT Protocol** — Authenticates with your PDS via OAuth 2.1. Connection data (tokens, DID, PDS URL) is stored in the database, not project config.
-2. **Create Publication Record** — Pushes a `site.standard.publication` record to your PDS. This must be done on each environment separately since it registers your site with your PDS.
+1. **Connect to AT Protocol** — Authenticates with your PDS via OAuth 2.1. Connection data (tokens, DID, PDS URL) is stored in the database.
+2. **Publication details** — Name, description, icon, theme colours and discovery (see [Link cards](#link-cards)). These live in the database rather than project config because the icon asset is referenced by an ID that is local to each environment, and so they can be edited on production.
+3. **Create / Update Publication Record** — Saves the details above and pushes a `site.standard.publication` record to your PDS. Done on each environment separately since it registers your site with your PDS.
 
-The typical workflow is: configure everything in development via plugin settings, deploy to production, then connect and create the publication record on production.
+The typical workflow is: set the handle and enabled sections in development via plugin settings, deploy, then connect, fill in the publication details, and create the publication record on each environment.
 
 ## Multi-site
 
@@ -107,7 +106,7 @@ The plugin registers a `/.well-known/site.standard.publication` route that retur
 
 ## Link cards
 
-These are standard.site fields, not anything Bluesky-specific. Any AT Protocol reader that understands the standard.site lexicons — [Bluesky](https://bsky.app), [Frontpage](https://frontpage.fyi), and future apps — can render your content as a rich link card that reflects your publication's identity (icon, brand colours, name and link) instead of a generic web preview. They live on your `site.standard.publication` record, so set them in plugin settings:
+These are standard.site fields, not anything Bluesky-specific. Any AT Protocol reader that understands the standard.site lexicons — [Bluesky](https://bsky.app), [Frontpage](https://frontpage.fyi), and future apps — can render your content as a rich link card that reflects your publication's identity (icon, brand colours, name and link) instead of a generic web preview. They live on your `site.standard.publication` record, so set them on the **Standard.site** CP page (per environment), then click **Create / Update Publication Record**:
 
 - **Publication Icon** — a square image (at least 256×256). It's uploaded to your PDS as a blob when you create or update the publication record, so the chosen asset must exist in that environment.
 - **Theme colours** — `Background`, `Foreground`, `Accent` and `Accent foreground`. All four must be set for the theme to be sent; otherwise it's omitted. They're stored as hex and converted to the `site.standard.theme.basic` RGB format.
