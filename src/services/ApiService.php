@@ -109,9 +109,10 @@ class ApiService extends Component
     /**
      * Upload a blob (image, etc.) to the PDS.
      *
+     * @param bool $isRetry Internal flag to prevent infinite retry loops
      * @return array Blob reference (with $type, ref, mimeType, size)
      */
-    public function uploadBlob(string $binaryData, string $mimeType): array
+    public function uploadBlob(string $binaryData, string $mimeType, bool $isRetry = false): array
     {
         $plugin = StandardSite::getInstance();
         $conn = $plugin->connection;
@@ -146,7 +147,23 @@ class ApiService extends Component
 
             return $result['blob'];
         } catch (ClientException $e) {
-            $body = json_decode((string)$e->getResponse()->getBody(), true) ?? [];
+            $response = $e->getResponse();
+            $statusCode = $response->getStatusCode();
+            $body = json_decode((string)$response->getBody(), true) ?? [];
+
+            // Handle DPoP nonce requirement — the PDS issues a fresh nonce on the
+            // first authenticated call; capture it and retry once.
+            if ($statusCode === 401 && ($body['error'] ?? '') === 'use_dpop_nonce' && !$isRetry) {
+                $this->extractNonce($response);
+                return $this->uploadBlob($binaryData, $mimeType, true);
+            }
+
+            // Handle expired token
+            if ($statusCode === 401 && !$isRetry) {
+                $plugin->oauth->refreshToken();
+                return $this->uploadBlob($binaryData, $mimeType, true);
+            }
+
             throw new \RuntimeException('Blob upload failed: ' . ($body['message'] ?? $e->getMessage()));
         }
     }
