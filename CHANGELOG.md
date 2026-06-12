@@ -1,5 +1,9 @@
 # Release Notes for Standard Site
 
+## 1.1.2 - 2026-06-12
+### Fixed
+- Fixed a bug where the publication icon would fail to load on production environments after being set in staging or development. The icon is now stored with an environment-local asset ID instead of a project-config reference that wouldn't resolve across environments.
+
 ## 1.1.1 - 2026-05-31
 ### Fixed
 - The theme `basicTheme` object now includes the required `$type` discriminators (`site.standard.theme.basic` and `site.standard.theme.color#rgb`). Without them the theme union was malformed and rich-card renderers ignored it.
